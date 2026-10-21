@@ -1,21 +1,56 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="et">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Rene — mäng</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; background: #0a0e12; color: #e8f0ff; display: grid; place-items: center; padding: 1.5rem; }
-    a { color: #5eead4; }
-    .box { text-align: center; max-width: 28rem; line-height: 1.6; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tankilahing</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="box">
-    <h1>Rene</h1>
-    <p>Siia tuleb sinu mäng. Asenda see fail või lisa siia oma HTML/CSS/JS.</p>
-    <p><a href="../../index.html">← tagasi dashboardile</a></p>
+
+<div class="page">
+  <header>
+    <h1>Tankilahing</h1>
+    <p>Üks tank. Laine laine järel vaenlasi.</p>
+  </header>
+
+  <div class="hud">
+    <div class="stat"><span class="k">Laine</span><span class="v" id="wave">1</span></div>
+    <div class="stat"><span class="k">Punktid</span><span class="v" id="score">0</span></div>
+    <div class="stat"><span class="k">Rekord</span><span class="v" id="best">0</span></div>
+    <div class="stat"><span class="k">Tapmised</span><span class="v" id="kills">0 / 10</span></div>
+    <div class="stat"><span class="k">Elud</span><span class="pips" id="lives"></span></div>
+    <div class="reload">
+      <span class="k"><span>Laadimine</span><span id="power"></span></span>
+      <div class="track"><i id="bar"></i></div>
+      <div class="ups" id="ups"></div>
+    </div>
   </div>
+
+  <div class="stage">
+    <canvas id="c" width="960" height="600" aria-label="Tankimäng"></canvas>
+    <div class="ov" id="ov">
+      <div class="box">
+        <h2 id="ovTitle">Tankilahing</h2>
+        <p id="ovText">Hävita iga laine vaenlase tankid. Kuulid põrkavad müüridelt tagasi, puidust kastid lähevad katki.</p>
+        <div class="choices" id="choices" hidden></div>
+        <button id="ovBtn" type="button">Alusta mängu</button>
+        <button id="ovSkip" class="ghost" type="button" hidden>Jäta vahele</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="help">
+    <span><kbd>WASD</kbd> või <kbd>nooled</kbd> sõida</span>
+    <span><kbd>Hiir</kbd> sihi</span>
+    <span><kbd>Klõps</kbd> või <kbd>tühik</kbd> tulista</span>
+    <span><kbd>P</kbd> paus</span>
+    <span>Puuteekraanil: vasak pool sõidab, parem pool sihib ja tulistab</span>
+    <button id="mute" type="button">Heli sees</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
