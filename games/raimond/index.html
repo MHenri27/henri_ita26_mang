@@ -1,21 +1,1211 @@
 <!DOCTYPE html>
-<html lang="et">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Raimond — mäng</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Synchronicity</title>
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; background: #0a0e12; color: #e8f0ff; display: grid; place-items: center; padding: 1.5rem; }
-    a { color: #5eead4; }
-    .box { text-align: center; max-width: 28rem; line-height: 1.6; }
+    :root {
+      --bg: #07060d;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      /* 16:9 box that fits the window; pixels stay crisp when scaled up */
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      image-rendering: pixelated;
+      background: #000;
+    }
   </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Raimond</h1>
-    <p>Siia tuleb sinu mäng. Asenda see fail või lisa siia oma HTML/CSS/JS.</p>
-    <p><a href="../../index.html">← tagasi dashboardile</a></p>
-  </div>
+  <canvas id="c" width="320" height="180"></canvas>
+
+  <script>
+    /*
+     * SYNCHRONICITY - top-down pixel-art adventure.
+     * Single file: HTML + CSS + JS, no dependencies.
+     * Search for "====" to jump between sections.
+     * Controls: arrows/WASD move, Z/Space/Enter interact, Esc pause, F fullscreen.
+     */
+
+    // ============ CORE: canvas, storage, input, audio, draw helpers ============
+    const C = document.getElementById("c"), X = C.getContext("2d");
+    X.imageSmoothingEnabled = false;
+    const W = 320, H = 180, T = 16;
+    const ST = { get(k) {
+      try {
+        return localStorage.getItem(k);
+      } catch (e) {
+        return null;
+      }
+    }, set(k, v) {
+      try {
+        localStorage.setItem(k, v);
+      } catch (e) {
+      }
+      try {
+        document.cookie = k.replace(/\W/g, "_") + "=1;max-age=31536000;path=/";
+      } catch (e) {
+      }
+    } };
+    const keys = {}, hit = {};
+    let opt = { m: 5, s: 7 };
+    addEventListener("keydown", (e) => {
+      if (!keys[e.code]) hit[e.code] = 1;
+      keys[e.code] = 1;
+      if (/Space|Arrow/.test(e.code)) e.preventDefault();
+      if (e.code == "KeyF") fs();
+      initA();
+    });
+    addEventListener("keyup", (e) => keys[e.code] = 0);
+    const ok = () => hit.Space || hit.Enter || hit.KeyZ, up = () => hit.ArrowUp || hit.KeyW, dn = () => hit.ArrowDown || hit.KeyS, lf = () => hit.ArrowLeft || hit.KeyA, rt = () => hit.ArrowRight || hit.KeyD, esc = () => hit.Escape;
+
+    function fs() {
+      try {
+        document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+      } catch (e) {
+      }
+    }
+    let AC;
+
+    function initA() {
+      if (!AC) try {
+        AC = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+      }
+    }
+
+    function beep(f2, d = 0.08, v = 1, t = "square") {
+      if (!AC) return;
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = t;
+      o.frequency.value = f2;
+      g.gain.value = 0.05 * opt.s / 10 * v;
+      g.gain.exponentialRampToValueAtTime(1e-4, AC.currentTime + d);
+      o.connect(g);
+      g.connect(AC.destination);
+      o.start();
+      o.stop(AC.currentTime + d);
+    }
+    const SC = { title: [262, 330, 392, 330, 294, 349], forest: [262, 330, 392, 523, 392, 330], dark: [196, 233, 196, 175, 208], beach: [330, 392, 440, 392, 523], city: [220, 277, 330, 277, 247], castle: [147, 175, 147, 131], casino: [247, 311, 370, 311] };
+    let mi = 0;
+    setInterval(() => {
+      const k = S && sc != "menu" ? S.m : "title", a = SC[k] || SC.title;
+      mi++;
+      if (AC && opt.m) beep(a[mi % a.length] / (k == "dark" ? 1 : 2), 0.25, opt.m / 10 * 0.8, "triangle");
+    }, 320);
+    const r = (x, y, w, h, c) => {
+      X.fillStyle = c;
+      X.fillRect(x | 0, y | 0, w | 0, h | 0);
+    };
+
+    function txt(s, x, y, c = "#fff", al = "left", sz = 8) {
+      X.font = "bold " + sz + "px monospace";
+      X.textAlign = al;
+      X.textBaseline = "top";
+      X.fillStyle = "#000";
+      X.fillText(s, x + 1, y + 1);
+      X.fillStyle = c;
+      X.fillText(s, x, y);
+    }
+
+    function wrap(s, n) {
+      const o = [];
+      let l = "";
+      for (const w of s.split(" ")) {
+        if ((l + w).length > n) {
+          o.push(l);
+          l = "";
+        }
+        l += w + " ";
+      }
+      o.push(l);
+      return o;
+    }
+
+    function rng(s) {
+      return () => (s = s * 1664525 + 1013904223 >>> 0) / 4294967296;
+    }
+
+    // ============ DATA: characters, enemies, biomes ============
+    const CH = [{ n: "Steven", b: "#d9443c", h: "#5a3a22", s: "#f1c9a0", e: "SAD", ec: "#6aa0ff" }, { n: "Caroline", b: "#f5c542", h: "#e8a020", s: "#f6d2b0", e: "HAPPY", ec: "#ffd84a" }, { n: "Patrick", b: "#7a3fa0", h: "#111", s: "#f1c9a0", e: "ANGRY", ec: "#ff5a4a" }, { n: "Uku", b: "#3fa08a", h: "#58c8d0", s: "#e0b48a", e: "CHILL", ec: "#9ff" }];
+    const EN = { sprout: { n: "Sprout", hp: 22, atk: 4, xp: 7, c: "#7ad35a" }, shadow: { n: "Shadow", hp: 38, atk: 7, xp: 13, c: "#4a3a7a" }, crab: { n: "Crab", hp: 52, atk: 9, xp: 17, c: "#e0583c" }, glitch: { n: "Glitch", hp: 70, atk: 12, xp: 22, c: "#3ee0e8" }, house: { n: "The House", hp: 170, atk: 15, xp: 0, c: "#ff3c8c" } };
+    const BI = {
+      forest: { g: ["#58a448", "#4f9a40", "#63ae50"], k: "tree", w: 50, h: 34, d: 0.09, en: "sprout", item: "Glow Mushroom", nm: "Whispering Woods", q: [["kill", 3, "Squash Sprouts"], ["item", 3, "Glow Mushrooms"]] },
+      dark: { g: ["#2b2540", "#262038", "#312a48"], k: "tree", w: 50, h: 36, d: 0.1, en: "shadow", item: "Rusty Key", nm: "Gloomwood", dk: 1, q: [["kill", 4, "Dispel Shadows"], ["item", 3, "Rusty Keys"]] },
+      beach: { g: ["#ecd48c", "#e3c87e", "#f0dc9a"], k: "palm", w: 50, h: 34, d: 0.05, en: "crab", item: "Seashell", nm: "Sunny Shores", q: [["kill", 4, "Shoo Crabs"], ["item", 3, "Seashells"]] },
+      city: { g: ["#23233a", "#1f1f33", "#292942"], k: "neon", w: 52, h: 30, d: 0, en: "glitch", item: "Neon Token", nm: "Neon District", q: [["kill", 4, "Reboot Glitches"], ["item", 3, "Neon Tokens"]] },
+      castle: { g: ["#2d283c", "#292437", "#312c42"], k: "pillar", w: 22, h: 14, d: 0, en: "shadow", nm: "Castle Mortis", dk: 1, fixed: 1 },
+      casino: { g: ["#3a0f2a", "#350d27", "#401331"], k: "slot", w: 22, h: 12, d: 0, en: "glitch", nm: "Casino Abyss", fixed: 1 }
+    };
+
+    // ============ MAPS: procedural tile maps + pre-rendered art ============
+    const MP = {};
+
+    function build(n) {
+      const B0 = BI[n], w = B0.w, h = B0.h, R = rng(n.length * 977 + w * 7), t = new Uint8Array(w * h);
+      const set = (x, y, v) => {
+        if (x >= 0 && y >= 0 && x < w && y < h) t[y * w + x] = v;
+      }, clr = (cx2, cy2, q) => {
+        for (let y = cy2 - q; y <= cy2 + q; y++) for (let x = cx2 - q; x <= cx2 + q; x++) if (x > 0 && y > 0 && x < w - 1 && y < h - 1) t[y * w + x] = 0;
+      };
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) t[y * w + x] = x < 1 || y < 1 || x >= w - 1 || y >= h - 1 ? B0.fixed ? 3 : 1 : R() < B0.d ? 1 : 0;
+      const cx = w >> 1, cy = h >> 1;
+      if (n == "beach") for (let y = h - 8; y < h; y++) for (let x = 0; x < w; x++) t[y * w + x] = 2;
+      if (n == "dark") {
+        for (let y = 3; y < 10; y++) for (let x = cx - 5; x < cx + 5; x++) set(x, y, 3);
+        clr(cx, 12, 2);
+        set(cx, 9, 5);
+      }
+      if (n == "city") {
+        for (let by = 3; by < h - 3; by += 8) for (let bx = 3; bx < w - 3; bx += 9) if (Math.abs(bx + 2 - cx) > 6 || Math.abs(by - cy) > 5) for (let y = by; y < by + 4; y++) for (let x = bx; x < bx + 6; x++) set(x, y, 3);
+        set(w - 3, cy, 5);
+      }
+      if (n == "castle") {
+        for (let y = 2; y < h - 1; y += 3) for (let x = 4; x < w - 1; x += 5) if (x != cx) set(x, y, 1);
+        set(cx, h - 1, 5);
+      }
+      if (n == "casino") {
+        for (let x = 3; x < w - 2; x += 3) {
+          set(x, 3, 1);
+          set(x, 6, 1);
+        }
+        set(cx, 0, 5);
+      }
+      clr(cx, cy, n == "castle" || n == "casino" ? 1 : 3);
+      if (n == "forest") clr(cx + 10, cy - 6, 2);
+      if (n == "beach") clr(w - 6, cy - 3, 2);
+      if (n == "dark") clr(cx, 11, 1);
+      const im = document.createElement("canvas");
+      im.width = w * T;
+      im.height = h * T;
+      const g = im.getContext("2d");
+      const R2 = rng(5), F = (x, y, ww, hh, c) => {
+        g.fillStyle = c;
+        g.fillRect(x, y, ww, hh);
+      };
+      const K = ["夢", "光", "賭", "電", "運", "酒"], NC = ["#ff3ca0", "#3ee0ff", "#ffd23c", "#8cff5a"];
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const px = x * T, py = y * T, v = t[y * w + x];
+        F(px, py, T, T, B0.g[(x * 7 + y * 13) % 3]);
+        for (let i = 0; i < 3; i++) F(px + R2() * 14 | 0, py + R2() * 14 | 0, 1, 1, "#0003");
+        if (n == "beach" && v == 0 && R2() < 0.05) F(px + 4, py + 6, 3, 2, "#fff8");
+        if (n == "city" && (x + y) % 4 == 0) F(px, py + 7, T, 1, "#ffffff10");
+        if (v == 2) {
+          F(px, py, T, T, "#3a8fd0");
+          F(px + 2, py + 5, 5, 1, "#9fd8ff");
+          F(px + 9, py + 11, 5, 1, "#9fd8ff");
+        }
+        if (v == 1) {
+          const k = B0.k;
+          if (k == "tree") {
+            const dc = n == "dark";
+            F(px + 6, py + 10, 4, 6, dc ? "#2a1c3a" : "#6a4a2a");
+            F(px + 1, py + 1, 14, 11, dc ? "#4a3a66" : "#2f7a34");
+            F(px + 3, py + 2, 6, 3, dc ? "#6a5a8a" : "#4fa850");
+            F(px + 9, py + 7, 5, 3, dc ? "#35284f" : "#256a2c");
+          }
+          if (k == "palm") {
+            F(px + 7, py + 6, 2, 10, "#8a6a3a");
+            F(px + 1, py + 2, 14, 3, "#2fa850");
+            F(px + 6, py, 4, 8, "#3fc060");
+            F(px + 3, py + 5, 3, 2, "#2fa850");
+            F(px + 10, py + 5, 3, 2, "#2fa850");
+          }
+          if (k == "neon") {
+            F(px + 6, py, 4, 16, "#444458");
+            F(px + 4, py + 2, 8, 3, NC[(x + y) % 4]);
+            F(px + 5, py + 9, 6, 2, NC[(x * 3 + y) % 4]);
+          }
+          if (k == "pillar") {
+            F(px + 3, py, 10, 16, "#5a5470");
+            F(px + 3, py, 3, 16, "#7a7490");
+            F(px + 3, py, 10, 2, "#8a84a0");
+          }
+          if (k == "slot") {
+            F(px + 2, py + 1, 12, 15, "#701850");
+            F(px + 4, py + 3, 8, 5, "#ffe");
+            F(px + 5, py + 4, 2, 3, "#f33");
+            F(px + 8, py + 4, 2, 3, "#3c3");
+            F(px + 4, py + 10, 8, 2, "#ff3ca0");
+            F(px + 12, py + 9, 1, 5, "#ffd23c");
+          }
+        }
+        if (v == 3) {
+          const c = n == "dark" || n == "castle";
+          if (c) {
+            F(px, py, T, T, "#3b3550");
+            F(px, py + 7, T, 1, "#2a2440");
+            F(px + 8, py, 1, 7, "#2a2440");
+            F(px + 3, py + 8, 1, 8, "#2a2440");
+            if (y < 4 || n == "castle" && y == 0) F(px + (x % 2 ? 0 : 8), py, 8, 3, "#4b4565");
+          } else {
+            F(px, py, T, T, "#1b1b2c");
+            F(px, py, T, 2, "#35354f");
+            for (let i = 0; i < 4; i++) if ((x * 5 + y * 3 + i) % 3) {
+              F(px + 2 + i % 2 * 7, py + 3 + (i >> 1) * 7, 5, 4, NC[(x + y + i) % 4] + "cc");
+            }
+            if ((x * 3 + y) % 7 == 0) {
+              g.font = "bold 14px sans-serif";
+              g.shadowColor = "#f0f";
+              g.shadowBlur = 6;
+              g.fillStyle = "#ff7aff";
+              g.fillText(K[(x + y) % 6], px, py + 14);
+              g.shadowBlur = 0;
+            }
+          }
+        }
+        if (v == 5) {
+          F(px, py, T, T, n == "city" ? "#111" : "#16121f");
+          F(px + 2, py + 2, 12, 14, "#0a0810");
+          F(px + 4, py + 12, 8, 2, "#ffd23c");
+          if (n == "city") {
+            for (let i = 0; i < 5; i++) F(px + 1, py + 2 + i * 3, 14, 1, "#ffffff30");
+            g.font = "bold 12px sans-serif";
+            g.fillStyle = "#ff3ca0";
+            g.fillText("賭", px + 2, py - 1);
+          }
+        }
+      }
+      return MP[n] = { w, h, t, im, cx, cy };
+    }
+
+    // ============ STATE: save data, entities, spawning ============
+    let sc = "menu", S = null, E = [], MN = null, B = null, MG = null, DL = null, PO = null, fade = 0, tick = 0, shake = 0, msgT = 0, msgS = "", tr = [], played = !!ST.get("syn_played"), trail = [];
+    const mapOf = () => MP[S.m] || build(S.m);
+
+    function newS(slot) {
+      return { slot, b: "forest", m: "forest", x: 0, y: 0, xp: 0, lv: 1, hp: [40, 40, 40, 40], mh: [40, 40, 40, 40], party: [0, 1, 2, 3], snacks: 3, p: { forest: [0, 0], dark: [0, 0], beach: [0, 0], city: [0, 0] }, ev: {}, found: 0, t: 0 };
+    }
+
+    function goto(m, x, y, d) {
+      S.m = m;
+      const mp = mapOf();
+      S.x = (x ?? mp.cx) * T + 8;
+      S.y = (y ?? mp.cy + 2) * T + 8;
+      trail = [];
+      S.dir = d || 0;
+      spawn();
+      fade = 1;
+    }
+
+    function spawn() {
+      const n = S.m, B0 = BI[n], mp = mapOf(), R = Math.random;
+      E = [];
+      const free = () => {
+        for (let i = 0; i < 200; i++) {
+          const x = 1 + R() * (mp.w - 2) | 0, y = 1 + R() * (mp.h - 2) | 0;
+          if (!mp.t[y * mp.w + x] && Math.hypot(x - mp.cx, y - mp.cy) > (B0.fixed ? 2 : 5)) return { x: x * T + 8, y: y * T + 14 };
+        }
+        return { x: mp.cx * T, y: mp.cy * T };
+      };
+      const bq = BI[S.b].q;
+      if (!B0.fixed) {
+        const p = S.p[n];
+        for (let i = 0; i < 7; i++) E.push({ k: "enemy", t: B0.en, ...free(), vx: 0, vy: 0 });
+        for (let i = 0; i < Math.max(0, B0.q[1][1] - p[1]); i++) E.push({ k: "item", ...free(), q: 1 });
+        for (let i = 0; i < 2; i++) E.push({ k: "item", ...free(), s: 1 });
+        E.push({ k: "vend", x: (mp.cx + 3) * T + 8, y: mp.cy * T + 16 });
+      }
+      if (n == "forest") {
+        E.push({ k: "npc", id: "mo", x: (mp.cx - 2) * T + 8, y: mp.cy * T + 16, c: CH[0], nm: "Mayor Mo" });
+        E.push({ k: "spot", x: (mp.cx + 10) * T + 8, y: (mp.cy - 6) * T + 14, nm: "well" });
+      }
+      if (n == "dark") E.push({ k: "door", x: mp.cx * T + 8, y: 10 * T + 8, to: "castle" });
+      if (n == "castle") {
+        E.push({ k: "door", x: mp.cx * T + 8, y: (mp.h - 1) * T - 4, to: "dark", out: 1 });
+        E.push({ k: "spot", x: mp.cx * T + 8, y: 3 * T, nm: "throne" });
+        for (let i = 0; i < 4; i++) E.push({ k: "enemy", t: "shadow", ...free(), vx: 0, vy: 0 });
+        E.push({ k: "vend", x: (mp.cx + 4) * T + 8, y: (mp.h - 3) * T });
+      }
+      if (n == "beach") E.push({ k: "spot", x: (mp.w - 6) * T + 8, y: (mp.cy - 3) * T + 14, nm: "tower" });
+      if (n == "city") {
+        E.push({ k: "door", x: (mp.w - 3) * T + 8, y: mp.cy * T + 16, to: "casino" });
+        if (!S.found) E.push({ k: "npc", id: "car", x: (mp.cx - 14) * T, y: (mp.cy + 5) * T, c: CH[1], nm: "Caroline" });
+      }
+      if (n == "casino") {
+        E.push({ k: "door", x: mp.cx * T + 8, y: T + 4, to: "city", out: 1 });
+        E.push({ k: "spot", x: mp.cx * T + 8, y: (mp.h - 3) * T, nm: "house" });
+        E.push({ k: "vend", x: 4 * T + 8, y: (mp.h - 3) * T });
+        E.push({ k: "npc", id: "st", x: 5 * T, y: 5 * T, c: CH[0], nm: "Steven" });
+        E.push({ k: "npc", id: "pa", x: (mp.w - 6) * T, y: 5 * T, c: CH[2], nm: "Patrick" });
+      }
+    }
+    const qdone = (b) => BI[b].q.every((q, i) => S.p[b][i] >= q[1]);
+
+    function say(m) {
+      msgS = m;
+      msgT = 150;
+    }
+
+    function D(lines, cb) {
+      DL = { q: lines.map((l) => l.split("|")), i: 0, c: 0, cb };
+      beep(300);
+    }
+
+    // ============ MENUS: title, options, save slots, pause ============
+
+    function menu(o) {
+      MN = Object.assign({ sel: 0 }, o);
+      sc = "menu";
+    }
+
+    function summ(i) {
+      try {
+        const d = JSON.parse(ST.get("syn_s" + i));
+        return `Slot ${i + 1}: ${BI[d.m].nm.slice(0, 16)}  Lv${d.lv}  ${Math.floor(d.t / 3600)}m`;
+      } catch (e) {
+        return `Slot ${i + 1}: — empty —`;
+      }
+    }
+    const hasSave = () => [0, 1, 2].some((i) => ST.get("syn_s" + i));
+
+    function title() {
+      S = null;
+      menu({ t: "title", items: [{ x: "New Game", f: () => slots("new") }, { x: "Load Game", d: !hasSave(), f: () => slots("load") }, { x: "Options", f: () => options(title) }, { x: "Quit", f: () => {
+        sc = "quit";
+      } }] });
+    }
+
+    function options(back) {
+      menu({ title: "Options", items: [{ x: () => "Music  < " + opt.m + " >", l: () => opt.m = Math.max(0, opt.m - 1), r: () => opt.m = Math.min(10, opt.m + 1) }, { x: () => "Sound  < " + opt.s + " >", l: () => opt.s = Math.max(0, opt.s - 1), r: () => opt.s = Math.min(10, opt.s + 1) }, { x: "Fullscreen (F)", f: fs }, { x: "Back", f: back }], back });
+    }
+
+    function slots(mode) {
+      const back = mode == "save" ? () => {
+        sc = "world";
+      } : title;
+      menu({ title: mode == "new" ? "Choose a save file" : mode == "save" ? "Save - pick a slot (overwrites)" : "Load game", items: [0, 1, 2].map((i) => ({ x: summ(i), d: mode == "load" && !ST.get("syn_s" + i), f: () => {
+        if (mode == "new") {
+          S = newS(i);
+          goto("forest");
+          ST.set("syn_played", 1);
+          played = true;
+          sc = "world";
+          D(["Caroline|Good morning, Whispering Woods! Isn't today GORGEOUS?", "Steven|It's damp. And there are bugs. I'd rather be at the gym.", "Patrick|Silence. Once I rule the world, mornings will be optional.", "Uku|...chill, guys. Let's go see what's up. (Arrows/WASD move, Z interact, Esc pause)"]);
+        }
+        if (mode == "load") {
+          S = JSON.parse(ST.get("syn_s" + i));
+          S.slot = i;
+          S.dir = 0;
+          goto(S.m, null, null);
+          S.x = S.sx || S.x;
+          S.y = S.sy || S.y;
+          sc = "world";
+        }
+        if (mode == "save") {
+          S.slot = i;
+          S.sx = S.x;
+          S.sy = S.y;
+          ST.set("syn_s" + i, JSON.stringify(S));
+          ST.set("syn_played", 1);
+          sc = "world";
+          say("Game saved to slot " + (i + 1) + ".");
+          beep(660, 0.2);
+        }
+      } })).concat([{ x: "Back", f: back }]), back });
+    }
+
+    function pause() {
+      menu({ title: "Paused", over: 1, items: [{ x: "Resume", f: () => sc = "world" }, { x: "Quests", f: () => {
+        sc = "world";
+        const b = S.b;
+        D(["Quest|" + BI[b].q.map((q, i) => q[2] + " " + Math.min(S.p[b][i], q[1]) + "/" + q[1]).join(" · ") + (qdone(b) ? " — all done! Find the story spot." : "")]);
+      } }, { x: "Options", f: () => options(pause) }, { x: "Title", f: title }], back: () => sc = "world" });
+    }
+
+    // ============ SPRITES: pixel-art characters and enemies ============
+
+    function sprite(c, x, y, d, f2) {
+      x |= 0;
+      y |= 0;
+      r(x - 5, y - 2, 10, 3, "#0005");
+      r(x - 3, y - 4, 2, 4, "#334");
+      r(x + 1, y - 4 + (f2 ? -1 : 0), 2, 4, "#334");
+      r(x - 4, y - 9, 8, 6, c.b);
+      r(x - 5, y - 8, 1, 4, c.s);
+      r(x + 4, y - 8, 1, 4, c.s);
+      r(x - 3, y - 15, 6, 6, c.s);
+      r(x - 3, y - 15, 6, d == 3 ? 5 : 2, c.h);
+      if (d != 3) {
+        r(x - 2, y - 12, 1, 2, "#000");
+        r(x + 1, y - 12, 1, 2, "#000");
+      }
+      if (c.n == "Patrick") {
+        r(x - 2, y - 17, 4, 2, "#fc3");
+        r(x - 4, y - 9, 8, 1, "#fc3");
+      }
+      if (c.n == "Caroline") {
+        r(x + 3, y - 14, 2, 5, c.h);
+        r(x - 3, y - 4, 6, 1, "#f8a");
+      }
+      if (c.n == "Steven") r(x - 3, y - 13, 6, 1, "#fff");
+      if (c.n == "Uku") r(x - 4, y - 9, 8, 2, "#2a7a68");
+    }
+
+    function esprite(t, x, y, f2) {
+      const e = EN[t], b = Math.sin(f2 / 8) * 1.5 | 0;
+      x |= 0;
+      y |= 0;
+      if (t == "house") {
+        r(x - 14, y - 30, 28, 30, "#701850");
+        r(x - 10, y - 26, 20, 12, "#fff");
+        r(x - 8, y - 24, 5, 8, "#f33");
+        r(x - 1, y - 24, 5, 8, "#3c3");
+        r(x + 6, y - 24, 3, 8, "#fc3");
+        r(x + 16, y - 24, 3, 20, "#ffd23c");
+        return;
+      }
+      r(x - 6, y - 2, 12, 3, "#0005");
+      r(x - 5, y - 9 + b, 10, 8, e.c);
+      r(x - 4, y - 11 + b, 8, 3, e.c);
+      r(x - 3, y - 8 + b, 2, 2, "#fff");
+      r(x + 1, y - 8 + b, 2, 2, "#fff");
+      r(x - 2, y - 7 + b, 1, 1, "#000");
+      r(x + 2, y - 7 + b, 1, 1, "#000");
+      if (t == "sprout") {
+        r(x - 1, y - 15 + b, 2, 4, "#3a9a3a");
+        r(x + 1, y - 15 + b, 4, 2, "#5ad05a");
+      }
+      if (t == "crab") {
+        r(x - 8, y - 9, 3, 3, e.c);
+        r(x + 5, y - 9, 3, 3, e.c);
+      }
+      if (t == "shadow") r(x - 5, y - 1, 10, 1, "#1a1030");
+      if (t == "glitch") {
+        r(x - 6, y - 6 + b, 3, 2, "#f0f");
+        r(x + 4, y - 10 + b, 3, 2, "#ff0");
+      }
+    }
+
+    // ============ WORLD: movement, interaction, story events, rendering ============
+
+    function solid(px, py) {
+      const mp = mapOf(), x = px / T | 0, y = py / T | 0;
+      return x < 0 || y < 0 || x >= mp.w || y >= mp.h || mp.t[y * mp.w + x] != 0;
+    }
+
+    function worldUpdate() {
+      if (DL) {
+        const l = DL.q[DL.i][1];
+        DL.c += 0.8;
+        if (ok()) {
+          if (DL.c < l.length) DL.c = l.length;
+          else {
+            DL.i++;
+            DL.c = 0;
+            beep(400, 0.04);
+            if (DL.i >= DL.q.length) {
+              const cb = DL.cb;
+              DL = null;
+              cb && cb();
+            }
+          }
+        }
+        return;
+      }
+      if (esc()) {
+        pause();
+        return;
+      }
+      S.t++;
+      let dx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0), dy = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0);
+      if (dx || dy) {
+        const s = (keys.ShiftLeft ? 1.8 : 1.2) / Math.hypot(dx, dy);
+        const nx = S.x + dx * s, ny = S.y + dy * s;
+        if (!solid(nx - 4, S.y) && !solid(nx + 4, S.y) && !solid(nx - 4, S.y - 3) && !solid(nx + 4, S.y - 3)) S.x = nx;
+        if (!solid(S.x - 4, ny) && !solid(S.x + 4, ny) && !solid(S.x - 4, ny - 3) && !solid(S.x + 4, ny - 3)) S.y = ny;
+        S.dir = Math.abs(dx) > Math.abs(dy) ? dx < 0 ? 1 : 2 : dy < 0 ? 3 : 0;
+        trail.unshift([S.x, S.y, S.dir]);
+        if (trail.length > 60) trail.pop();
+      }
+      for (const e of E) {
+        if (e.k == "enemy") {
+          const d = Math.hypot(S.x - e.x, S.y - e.y);
+          if (d < 55 && !(e.cd > 0)) {
+            e.vx = (S.x - e.x) / d * 0.5;
+            e.vy = (S.y - e.y) / d * 0.5;
+          } else if (tick % 90 == 0) {
+            const a = Math.random() * 6.28;
+            e.vx = Math.cos(a) * 0.3;
+            e.vy = Math.sin(a) * 0.3;
+          }
+          e.cd = (e.cd || 0) - 1;
+          const nx = e.x + e.vx, ny = e.y + e.vy;
+          if (!solid(nx, ny - 4)) {
+            e.x = nx;
+            e.y = ny;
+          }
+          if (d < 10 && e.cd <= 0) {
+            startBattle(e);
+            return;
+          }
+        }
+        if (e.k == "item" && Math.hypot(S.x - e.x, S.y - e.y) < 10) {
+          e.dead = 1;
+          beep(880, 0.1);
+          if (e.s) {
+            S.snacks++;
+            say("Found a snack! (+1)");
+          } else {
+            S.p[S.m][1]++;
+            say(BI[S.m].item + " " + Math.min(S.p[S.m][1], BI[S.m].q[1][1]) + "/" + BI[S.m].q[1][1]);
+          }
+        }
+      }
+      E = E.filter((e) => !e.dead);
+      if (ok()) {
+        let best = null, bd = 22;
+        for (const e of E) if (["npc", "vend", "door", "spot"].includes(e.k)) {
+          const d = Math.hypot(S.x - e.x, S.y - e.y);
+          if (d < bd) {
+            bd = d;
+            best = e;
+          }
+        }
+        if (best) interact(best);
+      }
+    }
+
+    function interact(e) {
+      if (e.k == "vend") {
+        beep(520, 0.1);
+        PO = { t: 0 };
+        sc = "pol";
+        return;
+      }
+      if (e.k == "door") {
+        if (e.to == "castle" && S.p.dark[1] < 3) {
+          say("Locked. Needs 3 Rusty Keys.");
+          return;
+        }
+        if (e.to == "casino" && !(S.found && qdone("city"))) {
+          say(S.found ? "The stairs hum... finish your quests first." : "You shouldn't go alone...");
+          return;
+        }
+        fade = 1;
+        if (e.out) {
+          const p = { castle: "dark", casino: "city" };
+          const from = S.m;
+          goto(p[from] || e.to, from == "castle" ? null : null, null);
+          const mp = mapOf();
+          if (from == "castle") {
+            S.x = mp.cx * T + 8;
+            S.y = 12 * T;
+          }
+          if (from == "casino") {
+            S.x = (mp.w - 5) * T + 8;
+            S.y = mp.cy * T + 16;
+          }
+        } else if (e.to == "casino") {
+          D(["|You walk down a long staircase. The neon kanji flicker overhead..."], () => goto("casino", null, 9));
+        } else goto(e.to, null, BI[e.to].h - 3);
+        return;
+      }
+      if (e.k == "npc") return npc(e);
+      if (e.k == "spot") {
+        const b = S.b;
+        if (!qdone(b) && e.nm != "house") {
+          say("Not yet... finish your quests first (" + BI[b].q.map((q, i) => Math.min(S.p[b][i], q[1]) + "/" + q[1]).join(", ") + ")");
+          return;
+        }
+        events[e.nm]();
+      }
+    }
+
+    function npc(e) {
+      const b = S.b;
+      if (e.id == "mo") D(qdone("forest") ? ["Mayor Mo|You've done it all! Go see the old well east of here."] : ["Mayor Mo|Sprouts are invading and glow mushrooms are missing! Squash 3 sprouts, find 3 mushrooms.", "Mayor Mo|Fight for XP, and use vending machines to save. Try the well afterwards!"]);
+      if (e.id == "car") D(["Caroline|UKU!! Oh thank goodness, I thought I was the only one left!", "Caroline|Everyone vanished. No shops, no people... just these buzzing signs. Let's stick together!"], () => {
+        S.found = 1;
+        S.party = [1, 3];
+        E = E.filter((x) => x.id != "car");
+        say("Caroline joined you.");
+      });
+      if (e.id == "st") D(["Steven|Don't look at me. I'm on my fourth shift. Pay is basically air.", "Steven|Honestly? Still better than the outdoors."]);
+      if (e.id == "pa") D(["Patrick|Uku... you came. I was ruler of everything in my head, you know.", "Patrick|But out there... I got lost. And I didn't come back. Some of me stayed here.", "Patrick|Beat the House, please. It keeps counting me as chips."]);
+    }
+    const events = {
+      well() {
+        D(["Caroline|Ooh, a wishing well! Make a wish!", "Steven|It looks cursed.", "Patrick|I wish for the WORLD. Hello, nothingness, kneel!", "Uku|...it's kinda deep, huh.", "|The light goes out. Wind howls. Something laughs under the water.", "Uku|Guys?", "Uku|PATRICK?!"], () => {
+          S.party = [3];
+          S.hp[2] = 0;
+          shake = 40;
+          D(["|Everyone is gone. Only the dark remains. Your greatest fear.", "Uku|It's okay. It's just the dark. Find the light..."], () => {
+            S.ev.f = 1;
+            mini("dark", () => {
+              S.b = "dark";
+              S.party = [3, 0, 1];
+              D(["|The dark fades. A path of gnarled trees opens east.", "Caroline|Uku! There you are! Have we... lost someone?", "Steven|Don't know. Let's keep going."], () => goto("dark"));
+            });
+          });
+        });
+      },
+      throne() {
+        D(["Caroline|Why are we in a castle again?", "Steven|Ugh. No idea. Something about... finding someone?", "Uku|...someone with a crown? It's on the tip of my tongue.", "|One by one, the faces of your friends turn blank. The shadows crawl up the walls.", "|Alone now. Hundreds of tiny legs skitter in the dark..."], () => {
+          shake = 40;
+          mini("spider", () => {
+            S.b = "beach";
+            S.party = [3, 0, 1];
+            D(["Caroline|Uku!! We found you! Look, the beach!", "Uku|Patrick... his name was Patrick. I remember now.", "Steven|...Yeah. Me too. Let's find him."], () => goto("beach"));
+          });
+        });
+      },
+      tower() {
+        D(["Caroline|A lighthouse! Let's climb it!", "Steven|Nope. Heights. No.", "|You climb alone. The railing is gone. Far below, the waves look like static...", `|Your feet won't move. Somewhere, Patrick whispers: "don't look down."`], () => {
+          shake = 40;
+          mini("height", () => {
+            S.b = "city";
+            S.party = [3];
+            D(["|You reach the top. The sky flickers like a broken screen.", "|When you look back down, your friends are gone. So is the sea.", "|Neon kanji hums in the dark. You are alone."], () => goto("city"));
+          });
+        });
+      },
+      house() {
+        D(['|The House spins its reels. "WELCOME BACK, UKU. THE HOUSE ALWAYS WINS."'], () => startBattle({ k: "enemy", t: "house", x: 0, y: 0, boss: 1 }));
+      }
+    };
+
+    function ending() {
+      D(["Patrick|Thank you for looking for me, Uku. Out there, I got lost... and in this world, I didn't make it.", "Patrick|But you remembered me. That's a kind of synchronicity.", "Caroline|We'll all be here. Always.", `|Steven: "Okay fine, the outside wasn't that bad." Uku: "...chill."`, "|Synchronicity — thanks for playing. (This is the end of the prototype.)"], () => {
+        sc = "quit2";
+      });
+    }
+
+    function drawWorld() {
+      const mp = mapOf();
+      let cx = Math.max(0, Math.min(mp.w * T - W, S.x - W / 2)), cy = Math.max(0, Math.min(mp.h * T - H, S.y - H / 2));
+      if (mp.w * T < W) cx = -(W - mp.w * T) / 2;
+      if (mp.h * T < H) cy = -(H - mp.h * T) / 2;
+      cx |= 0;
+      cy |= 0;
+      if (shake > 0) {
+        cx += Math.random() * 4 - 2 | 0;
+        cy += Math.random() * 4 - 2 | 0;
+      }
+      r(0, 0, W, H, "#000");
+      X.drawImage(mp.im, -cx, -cy);
+      const L = [];
+      for (const e of E) L.push({ y: e.y, f: () => {
+        const x = e.x - cx, y = e.y - cy;
+        if (e.k == "enemy") esprite(e.t, x, y, tick);
+        else if (e.k == "item") {
+          r(x - 3, y - 6 + Math.sin(tick / 9) * 2, 6, 6, e.s ? "#ffb347" : BI[S.m].item == "Seashell" ? "#ffc0d0" : "#9fffa0");
+          r(x - 1, y - 5 + Math.sin(tick / 9) * 2, 2, 2, "#fff");
+        } else if (e.k == "vend") {
+          r(x - 7, y - 22, 14, 22, "#d03030");
+          r(x - 5, y - 20, 10, 12, "#8ef");
+          r(x - 5, y - 6, 10, 3, "#222");
+          r(x + 1, y - 18, 3, 3, "#fc3");
+          r(x - 5, y - 12, 3, 3, "#fff");
+        } else if (e.k == "npc") sprite(e.c, x, y, 0, 0);
+        else if (e.k == "spot") {
+          if (e.nm == "well") {
+            r(x - 10, y - 10, 20, 10, "#777");
+            r(x - 7, y - 8, 14, 6, "#134");
+          } else if (e.nm == "tower") {
+            r(x - 8, y - 34, 16, 34, "#eee");
+            r(x - 8, y - 26, 16, 5, "#d33");
+            r(x - 5, y - 40, 10, 6, "#fc3");
+          } else if (e.nm == "throne") {
+            r(x - 8, y - 8, 16, 16, "#a02828");
+            r(x - 6, y - 14, 12, 8, "#fc3");
+          }
+        }
+      } });
+      L.push({ y: S.y, f: () => sprite(CH[3], S.x - cx, S.y - cy, S.dir, tick >> 3 & 1) });
+      S.party.filter((i) => i != 3).forEach((i, j) => {
+        const t = trail[Math.min((j + 1) * 12, trail.length - 1)];
+        if (t) L.push({ y: t[1] - 0.1, f: () => sprite(CH[i], t[0] - cx, t[1] - cy, t[2], tick >> 3 & 1) });
+      });
+      L.sort((a, b2) => a.y - b2.y).forEach((o) => o.f());
+      const B0 = BI[S.m];
+      if (B0.dk) {
+        const o = drawWorld.o || (drawWorld.o = document.createElement("canvas"));
+        o.width = W;
+        o.height = H;
+        const g = o.getContext("2d");
+        g.fillStyle = "rgba(0,0,8,.95)";
+        g.fillRect(0, 0, W, H);
+        g.globalCompositeOperation = "destination-out";
+        const px = S.x - cx, py = S.y - cy - 6, rr = S.m == "castle" ? 55 : 48;
+        const gr = g.createRadialGradient(px, py, 4, px, py, rr);
+        gr.addColorStop(0, "rgba(0,0,0,1)");
+        gr.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = gr;
+        g.fillRect(0, 0, W, H);
+        X.drawImage(o, 0, 0);
+      }
+      if (S.m == "city" || S.m == "casino") {
+        r(0, 0, W, H, "rgba(20,0,50,.3)");
+      }
+      txt("Lv" + S.lv + "  XP " + S.xp + "/" + S.lv * 20 + "  Snacks " + S.snacks, 4, 3, "#fff");
+      S.party.forEach((i, j) => {
+        r(4 + j * 40, 14, 36, 4, "#000");
+        r(5 + j * 40, 15, 34 * S.hp[i] / S.mh[i], 2, CH[i].b);
+      });
+      const b = S.b;
+      BI[b].q.forEach((q, i) => txt("• " + q[2] + " " + Math.min(S.p[b][i], q[1]) + "/" + q[1], W - 4, 3 + i * 9, S.p[b][i] >= q[1] ? "#8f8" : "#ddd", "right", 7));
+      if (msgT > 0) {
+        msgT--;
+        txt(msgS, W / 2, H - 28, "#ff8", "center");
+      }
+      let near = null;
+      for (const e of E) if (["npc", "vend", "door", "spot"].includes(e.k) && Math.hypot(S.x - e.x, S.y - e.y) < 22) near = e;
+      if (near && !DL) txt("[Z]", near.x - cx, near.y - cy - 30, "#fff", "center");
+      if (DL) {
+        r(10, H - 54, W - 20, 46, "#000d");
+        r(10, H - 54, W - 20, 1, "#fff");
+        const l = DL.q[DL.i];
+        if (l[0]) txt(l[0], 16, H - 50, "#ffd23c");
+        wrap(l[1].slice(0, DL.c | 0), 44).forEach((s, i) => txt(s, 16, H - 39 + i * 9));
+      }
+    }
+
+    // ============ POLAROID: vending-machine photo + save screen ============
+
+    function polaroid() {
+      PO.t++;
+      r(0, 0, W, H, "#2a2440");
+      for (let i = 0; i < 20; i++) r((i * 53 + PO.t * 0.2) % W, i * 37 % H, 1, 1, "#fff6");
+      X.save();
+      X.translate(W / 2, H / 2);
+      X.rotate(-0.05);
+      r(-76, -72, 152, 148, "#00000055");
+      r(-80, -76, 160, 152, "#f8f4e8");
+      r(-70, -66, 140, 100, { forest: "#8fd07a", dark: "#2a2440", beach: "#9fd8ff", city: "#201840" }[S.b]);
+      [0, 1, 2, 3].forEach((i, j) => {
+        const x = -48 + j * 32, y = 18;
+        if (S.party.includes(i) && S.hp[i] > 0) sprite(CH[i], x, y, 0, 0);
+        else {
+          X.globalAlpha = 0.12;
+          sprite(CH[i], x, y, 0, 0);
+          X.globalAlpha = 1;
+        }
+      });
+      txt("Synchronicity  " + BI[S.m].nm, 0, 44, "#333", "center", 8);
+      txt((/* @__PURE__ */ new Date()).toLocaleDateString(), 0, 56, "#777", "center", 7);
+      X.restore();
+      txt("[Z] Save", W / 2, H - 12, "#fff", "center");
+      if (PO.t > 20 && ok()) slots("save");
+    }
+
+    // ============ BATTLE: turn-based combat ============
+
+    function startBattle(e) {
+      B = { e, hp: EN[e.t].hp, mh: EN[e.t].hp, order: S.party.filter((i) => S.hp[i] > 0), i: -1, sel: 0, sub: 0, mode: "wait", msg: "", cb: null, g: 0, ch: 0, t: 30, shk: 0, a: {} };
+      shake = 10;
+      beep(200, 0.2);
+      sc = "battle";
+      B.msg = EN[e.t].n + " appears!";
+      B.cb = adv;
+    }
+
+    function say2(m, cb) {
+      B.mode = "msg";
+      B.msg = m;
+      B.cb = cb;
+      B.t = 55;
+    }
+
+    function adv() {
+      if (B.hp <= 0) return win();
+      B.i++;
+      if (B.i >= B.order.length) return enemyTurn();
+      const m = B.order[B.i];
+      if (S.hp[m] <= 0) return adv();
+      B.mode = "menu";
+      B.sel = 0;
+    }
+    const dmg = (m) => (5 + S.lv * 2 + (Math.random() * 4 | 0)) * (m == 2 ? 1.3 : 1) | 0;
+
+    function act(k) {
+      const m = B.order[B.i], c = CH[m].n, en = EN[B.e.t];
+      if (k == 0) {
+        const d = dmg(m);
+        B.hp -= d;
+        B.shk = 8;
+        beep(300, 0.1);
+        say2(c + " attacks! " + d + " damage.", adv);
+      }
+      if (k == 1) {
+        if (m == 0) {
+          B.g = 1;
+          say2(`Steven sulks... "This won't end well." (guard)`, adv);
+        }
+        if (m == 1) {
+          const h = 10 + S.lv * 2;
+          S.party.forEach((i) => S.hp[i] = Math.min(S.mh[i], S.hp[i] + h));
+          beep(700, 0.2);
+          say2("Caroline's sunshine heals everyone " + h + "!", adv);
+        }
+        if (m == 2) {
+          const d = dmg(m) * 2;
+          B.hp -= d;
+          B.shk = 8;
+          say2('Patrick: "DECREE!" ' + d + " damage!", adv);
+        }
+        if (m == 3) {
+          B.ch = 1;
+          S.hp[3] = Math.min(S.mh[3], S.hp[3] + 8);
+          say2('Uku: "chill." Enemy calms down.', adv);
+        }
+      }
+      if (k == 2) {
+        if (S.snacks < 1) return say2("No snacks left!", () => {
+          B.mode = "menu";
+        });
+        S.snacks--;
+        S.hp[m] = Math.min(S.mh[m], S.hp[m] + 25);
+        beep(600, 0.1);
+        say2(c + " eats a snack (+25 HP).", adv);
+      }
+      if (k == 3) {
+        if (B.e.boss) return say2("Can't run from the House!", () => {
+          B.mode = "menu";
+        });
+        if (Math.random() < 0.7) {
+          say2("Got away!", () => {
+            B.e.cd = 90;
+            sc = "world";
+          });
+        } else say2("Couldn't escape!", adv);
+      }
+    }
+
+    function enemyTurn() {
+      const en = EN[B.e.t], al = B.order.filter((i) => S.hp[i] > 0);
+      if (!al.length) return lose();
+      const t = al[Math.random() * al.length | 0];
+      const d = Math.max(1, (en.atk + (Math.random() * 4 | 0)) * (B.g ? 0.5 : 1) * (B.ch ? 0.6 : 1) | 0);
+      S.hp[t] = Math.max(0, S.hp[t] - d);
+      shake = 8;
+      beep(120, 0.15, 1, "sawtooth");
+      B.g = 0;
+      B.i = -1;
+      say2(en.n + " hits " + CH[t].n + " for " + d + (S.hp[t] <= 0 ? "! " + CH[t].n + " is down!" : "."), () => {
+        if (!B.order.some((i) => S.hp[i] > 0)) lose();
+        else adv();
+      });
+    }
+
+    function win() {
+      const en = EN[B.e.t], x = en.xp;
+      S.xp += x;
+      let m = "Victory! +" + x + " XP.";
+      while (S.xp >= S.lv * 20) {
+        S.xp -= S.lv * 20;
+        S.lv++;
+        S.party.forEach((i) => {
+          S.mh[i] += 8;
+          S.hp[i] = S.mh[i];
+        });
+        m += " LEVEL UP! Lv" + S.lv;
+      }
+      const p = S.p[BI[S.m].fixed ? S.b : S.m];
+      if (p && BI[S.m].q && B.e.t == BI[S.m].en) p[0]++;
+      E = E.filter((e) => e !== B.e);
+      S.party.forEach((i) => S.hp[i] = Math.max(S.hp[i], 8));
+      say2(m, () => {
+        sc = "world";
+        B.e.boss ? ending() : say(m);
+      });
+    }
+
+    function lose() {
+      say2("Everyone collapsed... You wake up, patched up.", () => {
+        S.party.forEach((i) => S.hp[i] = S.mh[i]);
+        goto(S.m, null, null);
+        sc = "world";
+      });
+    }
+
+    function battleUpdate() {
+      if (B.shk > 0) B.shk--;
+      if (B.mode == "menu") {
+        if (B.sub == 1 && 0) {
+        }
+        const n = 4;
+        if (up()) B.sel = (B.sel + n - 1) % n;
+        if (dn()) B.sel = (B.sel + 1) % n;
+        if (ok()) {
+          beep(500, 0.05);
+          act(B.sel);
+        }
+      } else {
+        B.t--;
+        if (ok() || B.t <= 0) {
+          const c = B.cb;
+          B.cb = null;
+          c && c();
+        }
+      }
+    }
+
+    function drawBattle() {
+      const g = BI[S.m], c = g.g[0];
+      r(0, 0, W, H, c);
+      for (let i = 0; i < 30; i++) r(i * 47 % W, i * 29 % H, 2, 2, g.g[1]);
+      r(0, H - 64, W, 64, "#000a");
+      const sx = B.shk % 2 ? 3 : 0;
+      esprite(B.e.t, W / 2 + sx, 86, tick);
+      if (B.e.t == "house") ;
+      const en = EN[B.e.t];
+      txt(en.n, W / 2, 10, "#fff", "center");
+      r(W / 2 - 40, 22, 80, 5, "#000");
+      r(W / 2 - 39, 23, 78 * Math.max(0, B.hp) / B.mh, 3, "#e44");
+      B.order.forEach((i, j) => {
+        const x = 30 + j * 70, y = H - 18;
+        const h = S.hp[i];
+        r(x - 26, y - 40, 64, 38, "#000c");
+        txt(CH[i].n, x - 22, y - 38, CH[i].b == "#7a3fa0" ? "#d9a0ff" : CH[i].b);
+        txt(CH[i].e, x + 34, y - 38, CH[i].ec, "right", 6);
+        r(x - 22, y - 26, 56, 4, "#411");
+        r(x - 22, y - 26, 56 * h / S.mh[i], 4, h ? "#6e6" : "#444");
+        txt(h + "/" + S.mh[i], x - 22, y - 20, "#fff", "left", 7);
+        if (B.mode == "menu" && B.order[B.i] == i) txt("▶", x - 26, y - 38, "#ff0");
+      });
+      if (B.mode == "menu") {
+        ["Attack", "Skill", "Snack (" + S.snacks + ")", "Run"].forEach((s, i) => txt((B.sel == i ? "▶ " : "  ") + (i == 1 ? ["Sulk", "Sunshine", "Decree", "Chill"][B.order[B.i]] : s), W / 2 - 50 + i % 2 * 60, 34 + (i >> 1) * 10, B.sel == i ? "#ff0" : "#fff"));
+      } else wrap(B.msg, 40).forEach((s, i) => txt(s, W / 2, 36 + i * 9, "#fff", "center"));
+    }
+
+    // ============ MINIGAMES: fear challenges (dark, spiders, heights) ============
+
+    function mini(k, cb) {
+      MG = { k, cb, t: 0, p: 0, x: W / 2, y: H / 2, miss: 0, eyes: [], sp: [], bal: 0.5, v: 0, out: 0 };
+      if (k == "dark") for (let i = 0; i < 5; i++) MG.eyes.push({ x: 40 + Math.random() * 240, y: 30 + Math.random() * 120, c: 0 });
+      sc = "mini";
+    }
+
+    function miniUpdate() {
+      const m = MG;
+      m.t++;
+      if (m.k == "dark") {
+        const s = 1.7;
+        m.x += ((keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0)) * s;
+        m.y += ((keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0)) * s;
+        m.x = Math.max(0, Math.min(W, m.x));
+        m.y = Math.max(0, Math.min(H, m.y));
+        m.eyes.forEach((e) => {
+          if (Math.hypot(m.x - e.x, m.y - e.y) < 32) e.c += 1;
+          else e.c = Math.max(0, e.c - 0.5);
+        });
+        m.eyes = m.eyes.filter((e) => e.c < 70 || (beep(500, 0.1), false));
+        if (!m.eyes.length) done();
+      }
+      if (m.k == "spider") {
+        if (m.t % 50 == 0 && m.p < 8 + m.miss) {
+          const s = Math.random() * 4 | 0;
+          m.sp.push({ s, d: 150 });
+        }
+        m.sp.forEach((q) => q.d -= 0.9);
+        const kk = ["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft"], al = ["KeyW", "KeyD", "KeyS", "KeyA"];
+        for (let i = 0; i < 4; i++) if (hit[kk[i]] || hit[al[i]]) {
+          const q = m.sp.filter((z) => z.s == i && z.d < 46).sort((a, b) => a.d - b.d)[0];
+          if (q) {
+            m.sp.splice(m.sp.indexOf(q), 1);
+            m.p++;
+            beep(700, 0.08);
+          }
+        }
+        if (m.sp.some((q) => q.d < 8)) {
+          m.sp = m.sp.filter((q) => q.d >= 8);
+          m.miss++;
+          shake = 12;
+          beep(100, 0.3, 1, "sawtooth");
+        }
+        if (m.p >= 8) done();
+      }
+      if (m.k == "height") {
+        m.v += (Math.random() - 0.5) * 12e-4;
+        m.bal += m.v;
+        m.bal += ((keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0)) * 6e-3;
+        m.v *= 0.98;
+        m.bal = Math.max(0, Math.min(1, m.bal));
+        if (Math.abs(m.bal - 0.5) < 0.2) m.p++;
+        else {
+          m.out++;
+          if (m.out > 40) {
+            m.p = 0;
+            m.out = 0;
+            m.bal = 0.5;
+            m.v = 0;
+            shake = 10;
+          }
+        }
+        if (Math.abs(m.bal - 0.5) < 0.2) m.out = 0;
+        if (m.p > 600) done();
+      }
+    }
+
+    function done() {
+      const cb = MG.cb;
+      beep(880, 0.3);
+      MG = null;
+      sc = "world";
+      cb();
+    }
+
+    function drawMini() {
+      const m = MG;
+      r(0, 0, W, H, "#000");
+      if (m.k == "dark") {
+        txt("Overcome the dark: hold your light on the watching eyes (arrows)", W / 2, 6, "#999", "center", 7);
+        m.eyes.forEach((e) => {
+          const lit = Math.hypot(m.x - e.x, m.y - e.y) < 32;
+          const a = lit ? 1 : 0.35;
+          r(e.x - 6, e.y - 2, 4, 3, lit ? "#f55" : "#522");
+          r(e.x + 3, e.y - 2, 4, 3, lit ? "#f55" : "#522");
+          if (e.c) r(e.x - 8, e.y + 6, 16 * e.c / 70, 2, "#ff8");
+        });
+        const gr = X.createRadialGradient(m.x, m.y, 2, m.x, m.y, 38);
+        gr.addColorStop(0, "rgba(255,240,150,.8)");
+        gr.addColorStop(1, "rgba(255,240,150,0)");
+        X.fillStyle = gr;
+        X.fillRect(0, 0, W, H);
+        sprite(CH[3], m.x, m.y + 8, 0, 0);
+      }
+      if (m.k == "spider") {
+        txt("Squash spiders as they reach the ring: press the arrow of their side " + m.p + "/8", W / 2, 6, "#999", "center", 7);
+        X.strokeStyle = "#744";
+        X.beginPath();
+        X.arc(W / 2, H / 2, 46, 0, 6.28);
+        X.stroke();
+        sprite(CH[3], W / 2, H / 2 + 8, 0, 0);
+        m.sp.forEach((q) => {
+          const a = [[0, -1], [1, 0], [0, 1], [-1, 0]][q.s], x = W / 2 + a[0] * (q.d + 8) * 1.3, y = H / 2 + a[1] * (q.d + 8) * 0.9;
+          r(x - 3, y - 3, 6, 6, "#222");
+          for (let i = 0; i < 4; i++) {
+            r(x - 8, y - 4 + i * 2, 5, 1, "#444");
+            r(x + 3, y - 4 + i * 2, 5, 1, "#444");
+          }
+          r(x - 2, y - 2, 1, 1, "#f00");
+          r(x + 1, y - 2, 1, 1, "#f00");
+        });
+      }
+      if (m.k == "height") {
+        txt("Stay balanced: hold LEFT/RIGHT to keep the marker in the zone", W / 2, 6, "#999", "center", 7);
+        r(0, 0, W, H, "#0a0a1a");
+        for (let i = 0; i < 30; i++) r((i * 41 + m.t * 0.3) % W, (i * 23 + m.t) % H, 1, 6, "#fff3");
+        r(40, H / 2 - 8, W - 80, 16, "#8a6a3a");
+        r(W / 2 - W * 0.2 * 0.8, H / 2 - 8, 2, 16, "#4f4");
+        r(W / 2 + W * 0.2 * 0.8, H / 2 - 8, 2, 16, "#4f4");
+        const x = 40 + (W - 80) * m.bal;
+        sprite(CH[3], x, H / 2 + 6, 0, m.t >> 3 & 1);
+        r(60, H - 20, W - 120, 5, "#222");
+        r(60, H - 20, (W - 120) * m.p / 600, 5, "#6e6");
+      }
+    }
+
+    // ============ MAIN: title art and game loop ============
+
+    function title2() {
+      r(0, 0, W, H, "#0c0a18");
+      for (let i = 0; i < 60; i++) {
+        const x = (i * 61 + tick * (0.1 + i % 3 * 0.05)) % W, y = i * 37 % H;
+        r(x, y, 1 + i % 2, 1 + i % 2, "#fff" + (i % 2 ? "8" : "c"));
+      }
+      txt("Synchronicity", W / 2, 38, "#9ff", "center", 22);
+      txt("Synchronicity", W / 2 - 1, 37, "#f6a", "center", 22);
+      if (played) txt("Back again?", W / 2 + 70, 66, "#ffd23c", "center", 8);
+      sprite(CH[0], 90, 150, 0, 0);
+      sprite(CH[1], 130, 150, 0, 0);
+      if (!played) sprite(CH[2], 170, 150, 0, 0);
+      else {
+        X.globalAlpha = 0.2;
+        sprite(CH[2], 170, 150, 0, 0);
+        X.globalAlpha = 1;
+      }
+      sprite(CH[3], 210, 150, 0, 0);
+    }
+
+    function loop() {
+      tick++;
+      try {
+        if (sc == "world") {
+          worldUpdate();
+          drawWorld();
+          if (shake > 0) shake--;
+        } else if (sc == "battle") {
+          battleUpdate();
+          drawBattle();
+        } else if (sc == "mini") {
+          miniUpdate();
+          drawMini();
+        } else if (sc == "pol") {
+          polaroid();
+        } else if (sc == "quit" || sc == "quit2") {
+          r(0, 0, W, H, "#000");
+          txt(sc == "quit" ? "Thanks for playing. You can close this tab." : "Synchronicity", W / 2, 80, "#fff", "center");
+          if (sc == "quit2" && ok()) title();
+          if (sc == "quit" && ok()) title();
+        }
+        if (sc == "menu") {
+          const m = MN;
+          if (m.over && S) drawWorld();
+          if (m.over) r(0, 0, W, H, "#0008");
+          else if (m.t == "title") title2();
+          else r(0, 0, W, H, "#0c0a18");
+          if (m.title) {
+            txt(m.title, W / 2, 22, "#9ff", "center", 12);
+          }
+          const it = m.items, y0 = m.t == "title" ? 86 : 50;
+          if (up()) {
+            m.sel = (m.sel + it.length - 1) % it.length;
+            beep(400, 0.04);
+          }
+          if (dn()) {
+            m.sel = (m.sel + 1) % it.length;
+            beep(400, 0.04);
+          }
+          const c = it[m.sel];
+          if (lf() && c.l) c.l();
+          if (rt() && c.r) c.r();
+          if (ok() && c.f && !c.d) {
+            beep(600, 0.06);
+            c.f();
+          }
+          if (esc() && m.back && !c.f) m.back();
+          else if (esc() && m.back) m.back();
+          if (sc == "menu") it.forEach((o, i) => txt((m.sel == i ? "▶ " : "  ") + (typeof o.x == "function" ? o.x() : o.x), W / 2, y0 + i * 14, o.d ? "#666" : m.sel == i ? "#ff0" : "#fff", "center", 9));
+        }
+        if (fade > 0) {
+          r(0, 0, W, H, "rgba(0,0,0," + fade + ")");
+          fade -= 0.03;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      for (const k in hit) delete hit[k];
+    }
+    let last = 0, acc = 0;
+    (function f(t) {
+      acc += Math.min(100, t - last);
+      last = t;
+      while (acc >= 16.67) {
+        loop();
+        acc -= 16.67;
+      }
+      requestAnimationFrame(f);
+    })(0);
+    title();
+
+  </script>
 </body>
 </html>
