@@ -1,21 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Synchronicity</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<style>
-  :root { --bg: #07060d; }
-  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
-  body { display: flex; align-items: center; justify-content: center; }
-  canvas { display: block; }
-</style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Synchronicity</title>
+    <style>
+        @font-face {
+            font-family: "Synchronicity Hand";
+            src: url("assets/fonts/OMORI_GAME2.ttf") format("truetype");
+            font-weight: 400;
+            font-style: normal;
+            font-display: block;
+        }
+    </style>
+    <style>
+        :root {
+            --bg: #07060d;
+        }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: var(--bg);
+            overflow: hidden;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-<canvas id="c"></canvas>
-<script>
+    <canvas id="c"></canvas>
+    <script>
 /*
  * SYNCHRONICITY v2
  * Rendering: the canvas is resized to an integer multiple of 320x180, so pixel art and text are always crisp.
@@ -91,26 +114,28 @@ function sh(h, f) {   // lighten/darken a #rrggbb colour
   const n = parseInt(h.slice(1), 16), c = i => Math.max(0, Math.min(255, Math.round(((n >> i) & 255) * f)));
   return '#' + [16, 8, 0].map(i => c(i).toString(16).padStart(2, '0')).join('');
 }
-function txt(s, x, y, c = '#fff', al = 'left', sz = 8) {   // UI-layer text, drawn at native resolution (never blurry)
-  X.font = sz + 'px "DotGothic16",monospace'; X.textAlign = al; X.textBaseline = 'top';
-  X.lineJoin = 'round'; X.lineWidth = sz * .3; X.strokeStyle = '#0a0814'; X.strokeText(s, x, y);
-  X.fillStyle = c; X.fillText(s, x, y);
+const FONT = '"Synchronicity Hand", "Comic Neue", cursive';
+function txt(s, x, y, c = '#fff', al = 'left', sz = 8) {   // UI-layer text: rendered at native resolution, never scaled
+  X.save(); X.setTransform(1, 0, 0, 1, 0, 0);
+  X.font = Math.round(sz * U) + 'px ' + FONT; X.textAlign = al; X.textBaseline = 'top'; X.fillStyle = c;
+  X.fillText(s, Math.round(x * U), Math.round(y * U)); X.restore();
 }
+const tw = (s, sz = 8) => { X.save(); X.setTransform(1, 0, 0, 1, 0, 0); X.font = Math.round(sz * U) + 'px ' + FONT; const w = X.measureText(s).width / U; X.restore(); return w };
 function wrap(s, n) { const o = []; let l = ''; for (const w of s.split(' ')) { if ((l + w).length > n) { o.push(l); l = '' } l += w + ' ' } o.push(l); return o }
 const rng = s => () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296;
 const hsh = (x, y, k = 0) => ((x * 73856093 ^ y * 19349663 ^ k * 83492791) >>> 0) % 1000 / 1000;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 // ==================== DATA ====================
-const CH = [   // the four friends. a = accessories, st = hair style
-  { n: 'Steven', sk: '#f0c8a0', hr: '#5b3b25', st: 'spiky', top: '#d94a3f', tr: '#ffffff', bt: '#2c3a5a', shoe: '#f2f2f2', a: ['headband'], emo: 'sad', e: 'SAD', ec: '#6aa0ff' },
-  { n: 'Caroline', sk: '#f7d6b8', hr: '#f2b632', st: 'long', top: '#f6cf4a', bt: '#f6cf4a', a: ['dress', 'bow'], mo: 'smile', emo: 'happy', e: 'HAPPY', ec: '#ffd84a' },
-  { n: 'Patrick', sk: '#f1cba5', hr: '#1a1a24', st: 'slick', top: '#7c3fa6', tr: '#ffd23c', bt: '#26203a', a: ['crown', 'gold', 'bowtie'], emo: 'angry', e: 'ANGRY', ec: '#ff5a4a' },
-  { n: 'Uku', sk: '#dcae82', hr: '#4fc3c8', st: 'messy', top: '#3b9a82', bt: '#3a4660', a: ['hood', 'phones'], emo: 'neutral', e: 'CHILL', ec: '#9ff' }];
+const CH = [   // protagonists, matched to the supplied reference art
+  { n: 'Steven', sk: '#f0c8a0', hr: '#5b3b25', st: 'messy', top: '#e8e2d8', bt: '#282832', shoe: '#e2ded5', a: ['hood'], emo: 'sad', e: 'SAD', ec: '#9aa8c1' },
+  { n: 'Caroline', sk: '#f0cbb4', hr: '#28232a', st: 'long', top: '#77777a', bt: '#28262a', shoe: '#c9c3bb', a: ['hood'], emo: 'neutral', e: 'NEUTRAL', ec: '#c4b8ae' },
+  { n: 'Hitori', sk: '#e7d2ce', hr: '#17151c', st: 'long', top: '#211923', tr: '#692b3c', bt: '#1c1720', shoe: '#19151c', a: ['horns', 'cloak'], emo: 'sad', e: 'SAD', ec: '#a98a9a' },
+  { n: 'Uku', sk: '#efc6a5', hr: '#b85d2c', st: 'messy', top: '#202a42', bt: '#292832', shoe: '#d0c9bd', a: ['hood'], emo: 'neutral', e: 'CHILL', ec: '#a6b9a0' }];
 const ND = {   // every NPC has its own unique look
   mo: { n: 'Mayor Mo', sk: '#e8c09a', hr: '#c8c8d0', st: 'bald', top: '#7a4a2a', tr: '#ffd23c', bt: '#3a2a1a', a: ['tophat', 'mustache', 'gold'] },
   bella: { n: 'Baker Bella', sk: '#f2c4a0', hr: '#a8442a', st: 'bun', top: '#c8a0e0', bt: '#6a5a8a', a: ['apron'], mo: 'smile' },
-  pip: { n: 'Pip', sk: '#e6b88e', hr: '#3a2a1a', st: 'none', top: '#4a8ad8', bt: '#6a4a2a', a: ['cap', 'pack'], s: .78 },
+  pip: { n: 'Pip', sk: '#e6b88e', hr: '#3a2a1a', st: 'none', top: '#4a8ad8', bt: '#6a4a2a', a: ['cap', 'pack'] },
   finn: { n: 'Fisher Finn', sk: '#d8a880', hr: '#9a9a9a', st: 'none', top: '#3a6a5a', bt: '#5a4a3a', a: ['strawhat', 'beard'], shoe: '#4a3a2a' },
   morrow: { n: 'Hermit Morrow', sk: '#9a8aa8', hr: '#222', st: 'none', top: '#4a5068', bt: '#2a2a3a', a: ['cloak'] },
   vesper: { n: 'Lady Vesper', sk: '#e6e0f0', hr: '#c8b8f0', st: 'long', top: '#d8d0f4', bt: '#d8d0f4', a: ['dress'], g: .72 },
@@ -152,21 +177,39 @@ const BI = {
   castle: { w: 30, h: 20, fixed: 1, nm: 'Castle Mortis', dk: 1, en: 'shadow', z: [{ n: 'Great Hall', k: 'safe', x: 2, y: 2, w: 26, h: 16 }] },
   casino: { w: 30, h: 18, fixed: 1, nm: 'Casino Abyss', en: 'glitch', z: [{ n: 'Casino Floor', k: 'safe', x: 2, y: 2, w: 26, h: 14 }] }
 };
-const PAL = {
-  forest: { a: ['#5ea84e', '#58a048', '#64ae54'], sp: '#4a8e3e', tall: '#3f8a3c', tuft: '#86cf63', path: '#cfae74', path2: '#b89259', pe: '#8a6c3c', lawn: '#73bd5c', plaza: '#b9b3a4', pl2: '#9c9688', fl: ['#ff8fb0', '#ffffff', '#ffd84a', '#b88cff'], tm: '#2f7d37', tl: '#56b04f', td: '#215f2c', tr: '#6b4a2b', wt: '#3a86c8' },
-  dark: { a: ['#2d2742', '#282239', '#322b49'], sp: '#201a30', tall: '#231d36', tuft: '#4d4470', path: '#4a4258', path2: '#3a3348', pe: '#1b1626', lawn: '#35304f', plaza: '#47405a', pl2: '#383248', fl: ['#77ffff', '#bb66ff', '#66ff99', '#ff99cc'], tm: '#44366a', tl: '#6a5a98', td: '#2c2248', tr: '#2a1c3a', wt: '#243a66' },
-  beach: { a: ['#efd790', '#e8cd84', '#f3de9c'], sp: '#d6b872', tall: '#e0c27a', tuft: '#b3d36a', path: '#d9b878', path2: '#c4a262', pe: '#a8884e', lawn: '#f5e4a6', plaza: '#e9e3d2', pl2: '#cfc7b2', fl: ['#ff8fb0', '#ffffff', '#ffd84a', '#88ccff'], tm: '#2fa850', tl: '#5fd070', td: '#1f7a3c', tr: '#8a6a3a', wt: '#3d9bd8' },
-  city: { a: ['#26263c', '#222236', '#2b2b44'], sp: '#1a1a2a', tall: '#1d1d2e', tuft: '#34344e', path: '#3c3c5a', path2: '#2e2e48', pe: '#15151f', lawn: '#2c2c46', plaza: '#3a3a58', pl2: '#2e2e48', fl: ['#ff3ca0', '#3ee0ff', '#ffd23c', '#8cff5a'], tm: '#444458', tl: '#666680', td: '#2a2a3a', tr: '#333344', wt: '#1a2a4a' },
-  castle: { a: ['#3a3450', '#363049', '#3e3856'], sp: '#2a2440', tall: '#3a3450', tuft: '#4a4468', path: '#7a2630', path2: '#5a1c26', pe: '#3a0f16', lawn: '#3a3450', plaza: '#47405a', pl2: '#383248', fl: [], tm: '#5a5470', tl: '#8a84a0', td: '#3a3450', tr: '#2a1c3a', wt: '#243a66' },
-  casino: { a: ['#431230', '#3c102b', '#4a1636'], sp: '#2c0a20', tall: '#431230', tuft: '#5a1a40', path: '#8a1a4a', path2: '#a82a60', pe: '#4a0a24', lawn: '#431230', plaza: '#47405a', pl2: '#383248', fl: [], tm: '#701850', tl: '#ff3ca0', td: '#3c102b', tr: '#2a1c3a', wt: '#243a66' }
+const PAL = {   // soft OMORI-like palettes: flat mint ground, teal trees with dark outlines, pale pink dirt
+  forest: { a: ['#a8dcb0', '#9fd4a8', '#b2e2b8'], sp: '#86c294', tall: '#7cbf8e', tuft: '#e4f6e4', tuft2: '#6aa77c', path: '#ecdcb8', path2: '#d8c49a', pe: '#a88e64', lawn: '#bce8c0', plaza: '#dad4c6', pl2: '#c0b9a8', fl: ['#ffffff', '#bcd8ff', '#ffc8dc', '#ffe9a0'], pink: '#f4dcee', pink2: '#e2c0d8', tm: '#3fb79c', tl: '#92e6c8', td: '#2a8c7a', to: '#1c5c58', tr: '#7a5240', wt: '#80cae8', wt2: '#b0e4f6', wo: '#3e8aa8' },
+  dark: { a: ['#4a4468', '#454060', '#504a6e'], sp: '#38324f', tall: '#3c3658', tuft: '#7a72a4', tuft2: '#2c2744', path: '#6c648a', path2: '#58507a', pe: '#2a2440', lawn: '#554e74', plaza: '#6c648a', pl2: '#58507a', fl: ['#88ffff', '#c890ff', '#88ffaa', '#ffa0cc'], pink: '#5a4a70', pink2: '#4a3c60', tm: '#6a5aa4', tl: '#a090d8', td: '#463a7a', to: '#221a3a', tr: '#2a1c3a', wt: '#3a5a98', wt2: '#6a8ac8', wo: '#1e2e5a' },
+  beach: { a: ['#f4e2ac', '#ecdca2', '#f8eaba'], sp: '#d8c488', tall: '#e2ce92', tuft: '#a8d080', tuft2: '#c2ae72', path: '#e8ca98', path2: '#d6b67e', pe: '#b09462', lawn: '#f8eec6', plaza: '#f2ede2', pl2: '#dad2be', fl: ['#ffb0c8', '#ffffff', '#ffe08a', '#9fd4ff'], pink: '#f6d8c4', pink2: '#e8c2aa', tm: '#3ab472', tl: '#92e2a4', td: '#28865a', to: '#185840', tr: '#9a7444', wt: '#5ab6e2', wt2: '#9ad8f4', wo: '#2a78a8' },
+  city: { a: ['#26263c', '#222236', '#2b2b44'], sp: '#1a1a2a', tall: '#1d1d2e', tuft: '#34344e', path: '#3c3c5a', path2: '#2e2e48', pe: '#15151f', lawn: '#2c2c46', plaza: '#3a3a58', pl2: '#2e2e48', fl: ['#ff3ca0', '#3ee0ff', '#ffd23c', '#8cff5a'], pink: '#2e2e48', pink2: '#222238', tm: '#444458', tl: '#666680', td: '#2a2a3a', to: '#0e0e18', tr: '#333344', wt: '#1a2a4a', wt2: '#3a4a7a', wo: '#0a1020' },
+  castle: { a: ['#3a3450', '#363049', '#3e3856'], sp: '#2a2440', tall: '#3a3450', tuft: '#4a4468', path: '#7a2630', path2: '#5a1c26', pe: '#3a0f16', lawn: '#3a3450', plaza: '#47405a', pl2: '#383248', fl: [], pink: '#3a3450', pink2: '#2a2440', tm: '#5a5470', tl: '#8a84a0', td: '#3a3450', to: '#1a1626', tr: '#2a1c3a', wt: '#243a66', wt2: '#4a5a96', wo: '#101830' },
+  casino: { a: ['#431230', '#3c102b', '#4a1636'], sp: '#2c0a20', tall: '#431230', tuft: '#5a1a40', path: '#8a1a4a', path2: '#a82a60', pe: '#4a0a24', lawn: '#431230', plaza: '#47405a', pl2: '#383248', fl: [], pink: '#431230', pink2: '#2c0a20', tm: '#701850', tl: '#ff3ca0', td: '#3c102b', to: '#1a0a1a', tr: '#2a1c3a', wt: '#243a66', wt2: '#4a5a96', wo: '#101830' }
 };
 const NC = ['#ff3ca0', '#3ee0ff', '#ffd23c', '#8cff5a'], KJ = ['夢', '光', '賭', '電', '運', '酒'];
 const PCOL = { forest: 'rgba(255,255,170,.7)', dark: 'rgba(150,200,255,.6)', beach: 'rgba(255,255,255,.35)', city: 'rgba(120,230,255,.5)' };
 
 // ==================== SPRITES ====================
 // Character: feet at (x,y). d: 0 down 1 left 2 right 3 up. f: walk frame 0-3. s: scale.
+const SHEETS = {};   // key -> [down, left, right, up] sprite sheets, 4 frames each: idle, step, passing, step
+const HERO_NAMES = { Steven: 'steven', Caroline: 'caroline', Hitori: 'hitori', Uku: 'uku' };
+const SHEET_DIRS = ['down', 'left', 'right', 'up'];
+function loadSheet(key) { SHEETS[key] = SHEET_DIRS.map(d => { const im = new Image(); im.src = 'assets/sprites/' + key + '_' + d + '.png'; return im }) }
+CH.forEach(c => { c.key = HERO_NAMES[c.n]; loadSheet(c.key) });
+Object.entries(ND).forEach(([id, c]) => { c.key = 'npc_' + id; loadSheet(c.key) });
+// f: 0 = standing (gentle breathing), 1..4 = walk-cycle frame
 function drawChar(c, x, y, d = 0, f = 0, s = 1) {
   s *= (c.s || 1);
+  const sheet = c.key && SHEETS[c.key], img = sheet && sheet[Math.max(0, Math.min(3, d))];
+  if (img && img.complete && img.naturalWidth > 0) {
+    const fw = img.naturalWidth / 4, fh = img.naturalHeight, ph = ((c.n || '').length * 13) | 0;
+    const fi = f > 0 ? (f - 1) % 4 : (((tick + ph) >> 5) & 1 ? 2 : 0);          // idle: slow 1px rise
+    const fy = c.g != null ? Math.round(-3 + Math.sin(tick / 14) * 2) : 0, keepA = X.globalAlpha;
+    ell(x, y - 1, Math.round(fw * .36 * s), 2, 'rgba(20,10,30,.28)');             // soft ground shadow
+    if (c.g != null) X.globalAlpha *= c.g;
+    X.imageSmoothingEnabled = false;
+    X.drawImage(img, fi * fw, 0, fw, fh, Math.round(x - fw * s / 2), Math.round(y - fh * s + fy + 1), Math.round(fw * s), Math.round(fh * s));
+    X.globalAlpha = keepA; return;
+  }
   const A = c.a || [], has = k => A.includes(k), ol = '#231a26', sk = c.sk, sk2 = sh(sk, .84), top = c.top, top2 = sh(top, .76),
     bt = c.bt || '#2f3a58', shoe = c.shoe || '#2a2230', hl = sh(c.hr, 1.4), keepA = X.globalAlpha;
   const fy = c.g ? -4 + Math.round(Math.sin(tick / 14) * 1.5) : 0;
@@ -184,6 +227,7 @@ function drawChar(c, x, y, d = 0, f = 0, s = 1) {
   } else if (side) { p(-2 + st * 2, -7, 3, 7, bt); p(-2 - st * 2, -7, 3, 7, sh(bt, .8)); p(-3 + st * 2 + (fl > 0 ? 1 : 0), -2, 5, 2, shoe) }
   else { p(-4, -7, 3, 7 - (st > 0 ? 1 : 0), bt); p(1, -7, 3, 7 - (st < 0 ? 1 : 0), bt); p(-5, -2 - (st > 0 ? 1 : 0), 4, 2, shoe); p(1, -2 - (st < 0 ? 1 : 0), 4, 2, shoe) }
   if (has('hood')) p(-6, -18 + bob, 12, 4, top2);
+  if (has('horns') && !side && d !== 3) { p(-6, -30 + bob, 2, 8, '#17131b'); p(4, -30 + bob, 2, 8, '#17131b'); p(-6, -31 + bob, 2, 2, '#3a2837'); p(4, -31 + bob, 2, 2, '#3a2837'); }
   // torso + arms
   if (has('cloak')) { p(-7, -17 + bob, 14, 17, '#4a5068'); p(3, -17 + bob, 4, 17, '#3a4058'); p(-7, -1, 14, 1, '#2a3048') }
   else {
@@ -238,8 +282,18 @@ function drawChar(c, x, y, d = 0, f = 0, s = 1) {
   if (has('helm')) { E(0, hy - 1, 7, 7, '#8a90a8'); p(-6, hy - 1, 12, 3, '#111'); p(-1, hy - 12, 2, 5, '#d33'); p(-3, hy + 3, 6, 3, '#ece8d4') }
   X.globalAlpha = keepA;
 }
+// Portrait art: cropped from the supplied character expression sheet. Local PNGs keep the game fully offline.
+const PORTRAITS = {};
+const PFILE = e => e === 'laugh' || e === 'smug' ? 'happy' : e === 'scared' ? 'worried' : e;
+for (const who of ['caroline', 'hitori', 'steven', 'uku', ...Object.keys(ND).map(i => 'npc_' + i)])
+  for (const emo of ['neutral', 'happy', 'laugh', 'sad', 'angry', 'shock', 'scared', 'worried', 'blush', 'dark', 'smug']) {
+    const im = new Image(); im.src = 'assets/portraits/' + who + '_' + PFILE(emo) + '.png'; PORTRAITS[who + ':' + emo] = im;
+  }
+const portraitKey = c => c.key && c.key.startsWith('npc_') ? c.key : (c.n || '').toLowerCase();
 // Big expressive face used by dialogue and battle. 56x56 design grid. emo: neutral happy laugh sad angry shock scared smug
 function portrait(c, emo, x, y, s, tk, bl) {
+  const key = portraitKey(c) + ':' + (emo || 'neutral'), art = PORTRAITS[key] || PORTRAITS[portraitKey(c) + ':neutral'];
+  if (art && art.complete && art.naturalWidth) { X.globalAlpha = c.g || 1; X.imageSmoothingEnabled = true; X.imageSmoothingQuality = 'high'; X.drawImage(art, x, y, 56 * s, 56 * s * art.naturalHeight / art.naturalWidth); X.imageSmoothingEnabled = false; X.globalAlpha = 1; return; }
   const A = c.a || [], has = k => A.includes(k), ol = '#231a26', sk = c.sk, sk2 = sh(sk, .85), hr = c.hr, hl = sh(hr, 1.4), br = sh(hr, .65), top = c.top, eyc = c.ey || '#1c1624', em = emo || 'neutral';
   const p = (a, b, w, h, col) => r(x + a * s, y + b * s, w * s, h * s, col), E = (a, b, rx, ry, col) => ell(x + a * s, y + b * s, rx * s, ry * s, col);
   const ln = (x1, y1, x2, y2, col) => { const n = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1)); for (let i = 0; i <= n; i++) p(x1 + (x2 - x1) * i / n, y1 + (y2 - y1) * i / n, 2, 2, col) };
@@ -333,10 +387,15 @@ function drawE(t, x, y, f, s = 1) {
 }
 // ==================== MAPS ====================
 let MP = {};
+function vn(x, y, sd) {   // smooth value noise 0..1 (used to shape forests, ponds and flower fields)
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, sm = q => q * q * (3 - 2 * q);
+  const a = hsh(xi, yi, sd), b = hsh(xi + 1, yi, sd), c = hsh(xi, yi + 1, sd), d = hsh(xi + 1, yi + 1, sd), u = a + (b - a) * sm(xf), v = c + (d - c) * sm(xf);
+  return u + (v - u) * sm(yf);
+}
 function build(n) {
-  const B0 = BI[n], P = PAL[n], w = B0.w, h = B0.h, R = rng(n.length * 977 + w * 7 + h), t = new Uint8Array(w * h), gt = new Uint8Array(w * h);
+  const B0 = BI[n], P = Object.assign({ to: '#1a1626', tuft2: '#000', pink: '#777', pink2: '#666', wt2: '#fff', wo: '#000' }, PAL[n]), w = B0.w, h = B0.h, R = rng(n.length * 977 + w * 7 + h), t = new Uint8Array(w * h), gt = new Uint8Array(w * h);
   const I = (x, y) => y * w + x, hub = B0.z[0], okc = (x, y) => x >= 0 && y >= 0 && x < w && y < h;
-  const inZ = (x, y, m) => B0.z.some(z => x >= z.x - m && x < z.x + z.w + m && y >= z.y - m && y < z.y + z.h + m);
+  const zd = (x, y) => { let m = 99; for (const z of B0.z) { const dx = Math.max(z.x - x, 0, x - (z.x + z.w - 1)), dy = Math.max(z.y - y, 0, y - (z.y + z.h - 1)); m = Math.min(m, Math.hypot(dx, dy)) } return m };
   const clr = (cx, cy, q) => { for (let y = cy - q; y <= cy + q; y++) for (let x = cx - q; x <= cx + q; x++) if (x > 1 && y > 1 && x < w - 2 && y < h - 2) t[I(x, y)] = 0 };
   const mp = { w, h, t, gt, cx: hub.x + (hub.w >> 1), cy: hub.y + (hub.h >> 1), door: null, arr: null, exit: null, zones: B0.z };
   const kz = z => ({ safe: 4, mob: 1, item: 3, story: 5 })[z.k];
@@ -348,13 +407,27 @@ function build(n) {
     else { for (let x = 5; x < w - 4; x += 4) { t[I(x, 5)] = 1; t[I(x, 11)] = 1 } t[I(cx, 1)] = 5; mp.door = { x: cx, y: 1 }; mp.arr = { x: cx, y: 4 }; mp.cy = 4 }
     mp.cx = cx;
   } else {
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) t[I(x, y)] = (x < 2 || y < 2 || x >= w - 2 || y >= h - 2) ? 1 : (!inZ(x, y, 1) && R() < B0.d) ? 1 : 0;
+    // forests are shaped with noise so trees form rounded masses with open clearings, like the OMORI overworld
+    const TV = { forest: .5, dark: .46, beach: .74 }[n], zk = (x, y) => { const z = B0.z.find(z => x >= z.x && x < z.x + z.w && y >= z.y && y < z.y + z.h); return z && z.k };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const edge = x < 2 || y < 2 || x >= w - 2 || y >= h - 2, d = zd(x, y), nn = vn(x / 4.5, y / 4.5, 1) * .65 + vn(x / 1.8, y / 1.8, 2) * .35;
+      t[I(x, y)] = (edge || (TV && d >= 1.5 && nn > TV + (d < 3 ? .08 : 0)) || (B0.d && d >= 1 && hsh(x, y, 77) < B0.d * .08) || ((zk(x, y) == 'mob' || zk(x, y) == 'item') && n != 'beach' && hsh(x, y, 88) < .04)) ? 1 : 0;
+    }
     B0.z.forEach(z => { for (let y = z.y; y < z.y + z.h; y++) for (let x = z.x; x < z.x + z.w; x++) gt[I(x, y)] = kz(z) });
-    const carve = (ax, ay, bx, by) => { let x = ax, y = ay; while (x != bx) { for (let j = 0; j < 2; j++) { gt[I(x, y + j)] = 2; t[I(x, y + j)] = 0 } x += Math.sign(bx - x) } while (y != by) { for (let j = 0; j < 2; j++) { gt[I(x + j, y)] = 2; t[I(x + j, y)] = 0 } y += Math.sign(by - y) } };
-    B0.z.slice(1).forEach(z => carve(mp.cx, mp.cy, z.x + (z.w >> 1), z.y + (z.h >> 1)));
-    // biome specifics
     if (n == 'forest') {
-      for (let y = 16; y < 24; y++) for (let x = 44; x < 52; x++) if (((x - 48) ** 2) / 16 + ((y - 20) ** 2) / 9 < 1) { t[I(x, y)] = 2; gt[I(x, y)] = 0 }
+      for (let y = 12; y < 30; y++) for (let x = 41; x < 58; x++) { const dx = (x - 49) / 6.2, dy = (y - 20) / 4.4; if (dx * dx + dy * dy + (vn(x / 2, y / 2, 9) - .5) * .6 < 1) { t[I(x, y)] = 2; gt[I(x, y)] = 0 } }
+      for (let y = 14; y < 26; y++) for (let x = 3; x < 20; x++) { const dx = (x - 11) / 5.5, dy = (y - 20) / 3.6; if (dx * dx + dy * dy + (vn(x / 2, y / 2, 4) - .5) * .5 < 1 && !t[I(x, y)]) gt[I(x, y)] = 6 }
+    }
+    const carve = (ax, ay, bx, by) => {   // winding two-tile-wide paths
+      let x = ax, y = ay, i = 0;
+      while (x != bx || y != by) {
+        const horiz = Math.abs(bx - x) >= Math.abs(by - y), wob = Math.round(Math.sin(i / 3.3 + ax) * 1.3);
+        for (let j = 0; j < 2; j++) { const px = horiz ? x : x + wob + j, py = horiz ? y + wob + j : y; if (okc(px, py)) { gt[I(px, py)] = 2; t[I(px, py)] = 0 } }
+        if (horiz) x += Math.sign(bx - x); else y += Math.sign(by - y); i++;
+      }
+    };
+    B0.z.slice(1).forEach(z => carve(mp.cx, mp.cy, z.x + (z.w >> 1), z.y + (z.h >> 1)));
+    if (n == 'forest') {
       for (let x = hub.x; x < hub.x + hub.w; x++) for (const y of [hub.y, hub.y + hub.h - 1]) if (gt[I(x, y)] != 2) t[I(x, y)] = 6;
       for (let y = hub.y; y < hub.y + hub.h; y++) for (const x of [hub.x, hub.x + hub.w - 1]) if (gt[I(x, y)] != 2) t[I(x, y)] = 6;
       B0.z.filter(z => z.k == 'mob').forEach(z => { for (let i = 0; i < 6; i++) { const x = z.x + 1 + (R() * (z.w - 2) | 0), y = z.y + 1 + (R() * (z.h - 2) | 0); if (gt[I(x, y)] != 2) t[I(x, y)] = 7 } });
@@ -367,63 +440,68 @@ function build(n) {
     if (n == 'beach') {
       for (let y = h - 8; y < h; y++) for (let x = 0; x < w; x++) { t[I(x, y)] = 2; gt[I(x, y)] = 0 }
       [[3, 3], [hub.w - 4, 3], [3, hub.h - 4], [hub.w - 4, hub.h - 4]].forEach(([a, b]) => t[I(hub.x + a, hub.y + b)] = 8);
-      for (let i = 0; i < 14; i++) { const x = 3 + (R() * (w - 6) | 0), y = 3 + (R() * (h - 14) | 0); if (!inZ(x, y, 0) && !t[I(x, y)]) t[I(x, y)] = 7 }
+      for (let i = 0; i < 14; i++) { const x = 3 + (R() * (w - 6) | 0), y = 3 + (R() * (h - 14) | 0); if (zd(x, y) > 0 && !t[I(x, y)]) t[I(x, y)] = 7 }
     }
     if (n == 'city') {
       for (let by = 3; by < h - 6; by += 8) for (let bx = 3; bx < w - 9; bx += 9) {
-        let free = true; for (let y = by - 1; y <= by + 4; y++) for (let x = bx - 1; x <= bx + 6; x++) if (inZ(x, y, 1)) free = false;
+        let free = true; for (let y = by - 1; y <= by + 4; y++) for (let x = bx - 1; x <= bx + 6; x++) if (zd(x, y) < 1.5) free = false;
         if (free) for (let y = by; y < by + 4; y++) for (let x = bx; x < bx + 6; x++) t[I(x, y)] = 3;
       }
       const z = B0.z[3], dx = z.x + (z.w >> 1), dy = z.y + (z.h >> 1); clr(dx, dy, 2); t[I(dx, dy)] = 5; mp.door = { x: dx, y: dy }; mp.exit = { x: dx - 2, y: dy };
       B0.z.filter(z => z.k != 'story').forEach(z => { for (let i = 0; i < 6; i++) { const x = z.x + 1 + (R() * (z.w - 2) | 0), y = z.y + 1 + (R() * (z.h - 2) | 0); if (gt[I(x, y)] != 2) t[I(x, y)] = 7 } });
     }
+    if (n != 'city') for (let y = 2; y < h - 2; y++) for (let x = 2; x < w - 2; x++) {   // bushes + flower fields in the open
+      if (t[I(x, y)] || zd(x, y) < 1 || gt[I(x, y)] == 2) continue;
+      if (vn(x / 3, y / 3, 5) > .64 && hsh(x, y, 11) < .3) t[I(x, y)] = 9;
+      else if (n != 'dark' && vn(x / 3.5, y / 3.5, 6) > .68 && gt[I(x, y)] == 0) gt[I(x, y)] = 3;
+    }
     clr(mp.cx, mp.cy, 2);
   }
-  // ---------- pre-render: base layer (ground + trunks + walls) and top layer (canopies) ----------
+  // ---------- pre-render: base layer (ground, trunks, walls) + top layer (canopies drawn over characters) ----------
   const mk = () => { const c = document.createElement('canvas'); c.width = w * T; c.height = h * T; return c };
   mp.im = mk(); mp.tp = mk(); const g = mp.im.getContext('2d'), g2 = mp.tp.getContext('2d');
   const F = (x, y, ww, hh, c, G = g) => { G.fillStyle = c; G.fillRect(x, y, ww, hh) };
-  const tuft = (x, y, c) => { F(x, y, 1, 3, c); F(x - 1, y + 1, 1, 2, c); F(x + 1, y + 1, 1, 2, c) };
-  const nbr = (x, y, v) => okc(x, y) && t[I(x, y)] == v;
+  const nbr = (x, y, v) => okc(x, y) && t[I(x, y)] == v, gnb = (x, y, v) => okc(x, y) && gt[I(x, y)] == v;
+  const sprig = (x, y, c) => { F(x, y + 1, 1, 1, c); F(x + 1, y, 1, 2, c); F(x + 2, y + 1, 1, 1, c) };
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const px = x * T, py = y * T, G = gt[I(x, y)], v = t[I(x, y)];
-    let col = P.a[(x * 7 + y * 13 + ((x * y) % 3)) % 3]; if (G == 1) col = P.tall; if (G == 4) col = P.lawn; if (G == 5) col = (x + y) & 1 ? P.plaza : P.pl2; if (G == 2) col = P.path;
+    const px = x * T, py = y * T, G = gt[I(x, y)], v = t[I(x, y)], nz = vn(x / 6, y / 6, 3);
+    let col = P.a[nz > .6 ? 2 : nz < .4 ? 1 : 0]; if (G == 1) col = P.tall; if (G == 4) col = P.lawn; if (G == 5) col = (x + y) & 1 ? P.plaza : P.pl2; if (G == 2) col = P.path; if (G == 6) col = P.pink;
     F(px, py, T, T, col);
-    for (let i = 0; i < 3; i++) F(px + (hsh(x, y, i) * 15 | 0), py + (hsh(x, y, i + 7) * 15 | 0), 1, 1, G == 2 ? P.path2 : P.sp);
+    for (let i = 0; i < 3; i++) F(px + (hsh(x, y, i) * 15 | 0), py + (hsh(x, y, i + 7) * 15 | 0), 1, 1, G == 2 ? P.path2 : G == 6 ? P.pink2 : P.sp);
     if (!B0.fixed) {
-      if ((G == 0 || G == 4) && hsh(x, y, 3) < (G ? .15 : .3)) tuft(px + 2 + (hsh(x, y, 4) * 12 | 0), py + 3 + (hsh(x, y, 5) * 10 | 0), P.tuft);
-      if (G == 1) for (let i = 0; i < 4; i++) { const a = px + 2 + i * 4, b = py + 3 + ((i * 5 + x) % 7); F(a, b, 1, 5, P.tuft); F(a + 1, b + 2, 1, 3, P.sp); F(a - 1, b + 2, 1, 3, P.tuft) }
-      if (G == 3 && hsh(x, y, 2) < .7) for (let i = 0; i < 2; i++) { const fx = px + 2 + (hsh(x, y, i + 20) * 10 | 0), fy = py + 2 + (hsh(x, y, i + 30) * 10 | 0), fc = P.fl[(hsh(x, y, i + 40) * 4) | 0]; F(fx, fy + 1, 3, 1, fc); F(fx + 1, fy, 1, 3, fc); F(fx + 1, fy + 1, 1, 1, '#ffe27a') }
-      if (G == 5) { F(px, py + 15, T, 1, P.pl2); F(px + 15, py, 1, T, P.pl2); F(px + 1, py + 1, 2, 1, 'rgba(255,255,255,.2)') }
+      if ((G == 0 || G == 4) && hsh(x, y, 3) < (G ? .14 : .3)) sprig(px + 2 + (hsh(x, y, 4) * 11 | 0), py + 3 + (hsh(x, y, 5) * 9 | 0), P.tuft);
+      if (G == 1) for (let i = 0; i < 4; i++) { const a = px + 2 + i * 4, b = py + 3 + ((i * 5 + x) % 7); F(a, b, 1, 4, P.tuft2); F(a + 1, b + 1, 1, 3, P.tuft); F(a - 1, b + 2, 1, 2, P.tuft2) }
+      if (G == 3 && hsh(x, y, 2) < .75) for (let i = 0; i < 2; i++) { const fx = px + 2 + (hsh(x, y, i + 20) * 10 | 0), fy = py + 2 + (hsh(x, y, i + 30) * 10 | 0), fc = P.fl[(hsh(x, y, i + 40) * 4) | 0]; F(fx, fy + 1, 3, 1, fc); F(fx + 1, fy, 1, 3, fc); F(fx + 1, fy + 1, 1, 1, '#ffe27a') }
+      if (G == 5) { F(px, py + 15, T, 1, P.pl2); F(px + 15, py, 1, T, P.pl2); F(px + 1, py + 1, 2, 1, 'rgba(255,255,255,.25)') }
+      if (G == 6) { if (!gnb(x, y - 1, 6)) F(px, py, T, 1, P.pink2); if (!gnb(x, y + 1, 6)) F(px, py + 15, T, 1, P.pink2); if (!gnb(x - 1, y, 6)) F(px, py, 1, T, P.pink2); if (!gnb(x + 1, y, 6)) F(px + 15, py, 1, T, P.pink2) }
     }
     if (G == 2) {
-      const nb = (dx, dy) => okc(x + dx, y + dy) && gt[I(x + dx, y + dy)] == 2;
-      if (!nb(0, -1)) { F(px, py, T, 2, P.pe); F(px, py + 2, T, 1, P.path2) } if (!nb(0, 1)) { F(px, py + 14, T, 2, P.pe); F(px, py + 13, T, 1, P.path2) }
-      if (!nb(-1, 0)) { F(px, py, 2, T, P.pe); F(px + 2, py, 1, T, P.path2) } if (!nb(1, 0)) { F(px + 14, py, 2, T, P.pe); F(px + 13, py, 1, T, P.path2) }
+      if (!gnb(x, y - 1, 2)) { F(px, py, T, 1, P.pe); F(px, py + 1, T, 1, P.path2) } if (!gnb(x, y + 1, 2)) { F(px, py + 15, T, 1, P.pe); F(px, py + 14, T, 1, P.path2) }
+      if (!gnb(x - 1, y, 2)) { F(px, py, 1, T, P.pe); F(px + 1, py, 1, T, P.path2) } if (!gnb(x + 1, y, 2)) { F(px + 15, py, 1, T, P.pe); F(px + 14, py, 1, T, P.path2) }
     }
     if (v == 2) {
-      F(px, py, T, T, P.wt); F(px + 2 + (y % 3) * 2, py + 5, 5, 1, 'rgba(255,255,255,.35)'); F(px + 8, py + 11, 5, 1, 'rgba(255,255,255,.3)'); F(px, py + 15, T, 1, sh(P.wt, .85));
-      if (!nbr(x, y - 1, 2)) { F(px, py, T, 3, 'rgba(255,255,255,.7)'); F(px + 3, py + 3, 4, 1, 'rgba(255,255,255,.4)') }
-      if (!nbr(x, y + 1, 2)) F(px, py + 15, T, 1, 'rgba(0,0,0,.25)');
+      F(px, py, T, T, P.wt); F(px + 2 + (y % 3) * 2, py + 5, 5, 1, P.wt2); F(px + 9, py + 11, 4, 1, P.wt2); F(px + 4, py + 13, 3, 1, P.wt2);
+      if (!nbr(x, y - 1, 2)) { F(px, py, T, 2, P.wt2); F(px, py, T, 1, P.wo) } if (!nbr(x, y + 1, 2)) F(px, py + 15, T, 1, P.wo);
+      if (!nbr(x - 1, y, 2)) F(px, py, 1, T, P.wo); if (!nbr(x + 1, y, 2)) F(px + 15, py, 1, T, P.wo);
     }
   }
-  const ell2 = (cx, cy, rx, ry, c, G = g) => ell(cx, cy, rx, ry, c, G);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const px = x * T, py = y * T, v = t[I(x, y)]; if (!v || v == 2) continue;
-    const k = B0.k;
+    const k = { forest: 'tree', dark: 'tree', beach: 'palm', city: 'neon', castle: 'pillar', casino: 'slot' }[n];
     if (v == 1) {
       if (k == 'tree') {
-        const cr = 11 + (hsh(x, y, 1) * 3 | 0), cx = px + 8, cy = py + 1;
-        ell2(px + 12, py + 15, 9, 3, 'rgba(0,0,0,.25)'); F(px + 6, py + 8, 4, 8, P.tr); F(px + 8, py + 8, 2, 8, sh(P.tr, .75)); F(px + 4, py + 15, 8, 1, P.tr);
-        ell2(cx, cy + 2, cr, cr - 2, P.td, g2); ell2(cx - 1, cy, cr - 1, cr - 3, P.tm, g2); ell2(cx - 3, cy - 3, cr - 5, cr - 7, P.tl, g2);
-        for (let i = 0; i < 10; i++) { const a = cx + (hsh(x, y, i + 50) * 2 - 1) * cr * .8, b = cy + (hsh(x, y, i + 60) * 2 - 1) * (cr - 4); F(a | 0, b | 0, 2, 1, i % 2 ? P.tl : P.td, g2) }
-        if (n == 'dark' && hsh(x, y, 9) < .25) F(cx + 3, cy + 4, 2, 2, '#8ff', g2);
+        const rr = 10 + (hsh(x, y, 1) * 2 | 0), cx = px + 8, cy = py + 1;
+        ell(px + 12, py + 15, 8, 2.5, 'rgba(0,0,0,.16)', g); F(px + 6, py + 8, 4, 8, P.tr); F(px + 8, py + 8, 2, 8, sh(P.tr, .72)); F(px + 5, py + 15, 6, 1, sh(P.tr, .72));
+        ell(cx, cy + 2, rr + 1, rr - 1, P.to, g2); ell(cx, cy + 2, rr, rr - 2, P.td, g2); ell(cx - 1, cy, rr - 1, rr - 3, P.tm, g2);
+        [[-4, -3, 4, 3], [3, -2, 3, 2], [-1, 2, 3, 2], [-6, 1, 2, 2]].forEach(([a, b, c, d]) => ell(cx + a, cy + b, c, d, P.tl, g2));
+        [[5, 4, 4, 2], [-2, 6, 3, 1]].forEach(([a, b, c, d]) => ell(cx + a, cy + b, c, d, P.td, g2));
+        if (n == 'dark' && hsh(x, y, 9) < .25) F(cx + 3, cy + 4, 2, 2, '#9ff', g2);
       }
       if (k == 'palm') {
-        ell2(px + 12, py + 15, 8, 2, 'rgba(0,0,0,.2)'); F(px + 7, py + 6, 3, 10, P.tr); for (let i = 0; i < 4; i++) F(px + 7, py + 7 + i * 2, 3, 1, sh(P.tr, .7));
-        for (let a = 0; a < 7; a++) { const an = a * .9 + hsh(x, y, 2); for (let i = 0; i < 9; i++) F(px + 8 + Math.cos(an) * i * 1.7, py + 4 + Math.sin(an) * i * .9 + i * .4, 2, 2, i < 5 ? P.tm : P.tl, g2) }
+        ell(px + 12, py + 15, 8, 2, 'rgba(0,0,0,.18)', g); F(px + 6, py + 6, 4, 10, P.to); F(px + 7, py + 6, 2, 10, P.tr); for (let i = 0; i < 4; i++) F(px + 7, py + 8 + i * 2, 2, 1, sh(P.tr, .7));
+        for (let pass = 0; pass < 2; pass++) for (let a = 0; a < 7; a++) { const an = a * .9 + hsh(x, y, 2); for (let i = 0; i < 9; i++) { const fx = px + 8 + Math.cos(an) * i * 1.7, fy = py + 4 + Math.sin(an) * i * .9 + i * .4; pass ? F(fx, fy, 2, 2, i < 5 ? P.tm : P.tl, g2) : F(fx - 1, fy - 1, 4, 4, P.to, g2) } }
       }
-      if (k == 'neon') { F(px + 7, py + 3, 2, 13, '#4a4a60'); F(px + 4, py, 8, 4, NC[(x + y) % 4]); ell2(px + 8, py + 6, 14, 9, 'rgba(255,80,180,.10)', g2) }
+      if (k == 'neon') { F(px + 7, py + 3, 2, 13, '#4a4a60'); F(px + 4, py, 8, 4, NC[(x + y) % 4]); ell(px + 8, py + 6, 14, 9, 'rgba(255,80,180,.10)', g2) }
       if (k == 'pillar') { F(px + 2, py + 2, 12, 14, '#5a5470'); F(px + 2, py + 2, 4, 14, '#7a7490'); F(px, py, 16, 3, '#8a84a0'); F(px + 1, py + 15, 14, 1, '#2a2440') }
       if (k == 'slot') { F(px + 1, py + 1, 14, 15, '#2a0a20'); F(px + 2, py + 2, 12, 13, '#701850'); F(px + 4, py + 4, 8, 5, '#fffff0'); F(px + 5, py + 5, 2, 3, '#f33'); F(px + 8, py + 5, 2, 3, '#3c3'); F(px + 4, py + 11, 8, 2, '#ff3ca0'); F(px + 13, py + 7, 1, 6, '#ffd23c') }
     }
@@ -432,7 +510,7 @@ function build(n) {
         F(px, py, T, T, '#3b3550'); F(px, py + 7, T, 1, '#2a2440'); F(px + 8, py, 1, 7, '#2a2440'); F(px + 3, py + 8, 1, 8, '#2a2440'); F(px + 12, py + 8, 1, 8, '#2a2440'); F(px, py, T, 1, '#4a4468');
         if (!nbr(x, y - 1, 3) && n == 'dark') { F(px, py - 4, T, 5, '#4b4565'); for (let i = 0; i < 2; i++) F(px + i * 8, py - 6, 5, 3, '#4b4565') }
         if (n == 'dark' && y >= 5 && y <= 6 && (x - 26) % 3 == 1) { F(px + 3, py + 2, 8, 12, '#14101f'); F(px + 4, py + 3, 6, 10, '#8a6cff'); F(px + 7, py + 3, 1, 10, '#14101f') }
-        if (n == 'castle' && y == 2 && x % 4 == 2) { F(px + 6, py + 4, 4, 8, '#5a3a1a'); F(px + 5, py, 6, 5, '#ff9a2a'); F(px + 7, py - 2, 2, 3, '#ffd23c'); ell2(px + 8, py + 4, 16, 12, 'rgba(255,160,60,.10)', g2) }
+        if (n == 'castle' && y == 2 && x % 4 == 2) { F(px + 6, py + 4, 4, 8, '#5a3a1a'); F(px + 5, py, 6, 5, '#ff9a2a'); F(px + 7, py - 2, 2, 3, '#ffd23c'); ell(px + 8, py + 4, 16, 12, 'rgba(255,160,60,.10)', g2) }
       } else if (n == 'casino') { F(px, py, T, T, '#1a0a1a'); F(px, py + 12, T, 1, '#ff3ca0'); F(px, py + 14, T, 1, '#3ee0ff'); if (y == 1 && x % 5 == 2) { g.font = 'bold 13px sans-serif'; g.fillStyle = '#ff7aff'; g.shadowColor = '#f0f'; g.shadowBlur = 6; g.fillText(KJ[x % 6], px + 1, py + 11); g.shadowBlur = 0 } }
       else {
         F(px, py, T, T, '#1b1b2c'); F(px, py, T, 2, '#35354f'); F(px, py + 15, T, 1, '#0e0e18');
@@ -446,18 +524,19 @@ function build(n) {
       else if (n == 'dark') { F(px - 4, py - 2, 24, 18, '#2a2440'); F(px, py, 16, 16, '#0a0810'); F(px + 2, py + 2, 12, 14, '#2a1a10'); F(px + 12, py + 9, 2, 2, '#ffd23c'); F(px, py - 4, 16, 3, '#ff9a2a') }
       else { F(px, py, T, T, '#16121f'); F(px + 2, py + 2, 12, 14, '#0a0810'); F(px + 4, py + 12, 8, 2, '#ffd23c') }
     }
-    if (v == 6) { ell2(px + 9, py + 15, 7, 2, 'rgba(0,0,0,.2)'); F(px + 1, py + 4, 3, 11, '#8a5a30'); F(px + 12, py + 4, 3, 11, '#8a5a30'); F(px, py + 7, T, 2, '#a8723c'); F(px, py + 11, T, 2, '#a8723c'); F(px + 1, py + 4, 1, 11, '#c8924c') }
+    if (v == 6) { ell(px + 9, py + 15, 7, 2, 'rgba(0,0,0,.18)', g); F(px + 1, py + 3, 4, 12, '#5a3a22'); F(px + 12, py + 3, 4, 12, '#5a3a22'); F(px + 2, py + 4, 2, 10, '#a8723c'); F(px + 13, py + 4, 2, 10, '#a8723c'); F(px, py + 6, T, 4, '#5a3a22'); F(px, py + 7, T, 2, '#c08850'); F(px, py + 11, T, 3, '#5a3a22'); F(px, py + 12, T, 1, '#c08850') }
     if (v == 7) {
-      ell2(px + 9, py + 14, 8, 3, 'rgba(0,0,0,.25)');
-      if (n == 'dark') { F(px + 4, py + 3, 8, 12, '#6a6486'); F(px + 5, py + 1, 6, 3, '#6a6486'); F(px + 7, py + 5, 2, 5, '#2a2440'); F(px + 5, py + 7, 6, 2, '#2a2440'); F(px + 4, py + 3, 2, 12, '#8a84a8') }
-      else if (n == 'city') { F(px + 2, py + 4, 12, 11, '#6a4a2a'); F(px + 2, py + 4, 12, 2, '#8a6a3a'); F(px + 7, py + 4, 2, 11, '#4a3418') }
-      else { ell2(px + 8, py + 11, 7, 5, '#6a6a76'); ell2(px + 6, py + 9, 4, 3, '#9a9aa8'); F(px + 11, py + 12, 3, 1, '#4a4a56') }
+      ell(px + 9, py + 14, 8, 3, 'rgba(0,0,0,.2)', g);
+      if (n == 'dark') { F(px + 4, py + 2, 9, 13, '#2a2440'); F(px + 5, py + 3, 7, 11, '#7a7498'); F(px + 6, py + 1, 5, 3, '#2a2440'); F(px + 7, py + 2, 3, 2, '#7a7498'); F(px + 8, py + 5, 1, 5, '#2a2440'); F(px + 6, py + 7, 5, 1, '#2a2440'); F(px + 5, py + 3, 2, 11, '#9a94b8') }
+      else if (n == 'city') { F(px + 1, py + 3, 14, 12, '#2a1c10'); F(px + 2, py + 4, 12, 10, '#6a4a2a'); F(px + 2, py + 4, 12, 2, '#8a6a3a'); F(px + 7, py + 4, 2, 10, '#4a3418') }
+      else { ell(px + 8, py + 11, 8, 6, '#4a4a5c', g); ell(px + 8, py + 10, 7, 5, '#9a9aa8', g); ell(px + 6, py + 8, 3, 2, '#c8c8d6', g); F(px + 10, py + 12, 4, 1, '#6a6a7a') }
     }
-    if (v == 8) { ell2(px + 14, py + 15, 10, 3, 'rgba(0,0,0,.22)'); F(px + 7, py - 6, 2, 22, '#d8d8e0'); const uc = NC[(x + y) % 4]; for (let i = 0; i < 6; i++) ell2(px + 8, py - 8, 14 - i * 2, 7 - i, i & 1 ? '#fff' : uc, g2); F(px + 7, py - 15, 2, 3, '#ddd', g2) }
+    if (v == 8) { ell(px + 14, py + 15, 10, 3, 'rgba(0,0,0,.2)', g); F(px + 7, py - 6, 2, 22, '#d8d8e0'); const uc = NC[(x + y) % 4]; for (let i = 0; i < 6; i++) ell(px + 8, py - 8, 14 - i * 2, 7 - i, i & 1 ? '#fff' : uc, g2); ell(px + 8, py - 8, 15, 8, 'rgba(0,0,0,0)', g2); F(px + 7, py - 15, 2, 3, '#ddd', g2) }
+    if (v == 9) { ell(px + 10, py + 14, 8, 2.5, 'rgba(0,0,0,.16)', g); ell(px + 8, py + 10, 8, 6, P.to, g); ell(px + 8, py + 10, 7, 5, P.td, g); ell(px + 8, py + 9, 6, 4, P.tm, g); ell(px + 6, py + 7, 3, 2, P.tl, g); if (hsh(x, y, 13) < .4) { F(px + 10, py + 9, 2, 2, '#ff8fb0'); F(px + 5, py + 11, 2, 2, '#ffe9a0') } }
   }
   // set dressing for the hub zone
-  if (n == 'forest') { const bx = (mp.cx + 2) * T, by = (hub.y + hub.h - 5) * T; F(bx - 1, by - 1, 82, 50, '#8a2a2a'); for (let j = 0; j < 6; j++) for (let i = 0; i < 10; i++) F(bx + i * 8, by + j * 8, 8, 8, (i + j) & 1 ? '#f4eadc' : '#d8504a'); F(bx, by + 48, 80, 2, 'rgba(0,0,0,.25)') }
-  if (n == 'beach') { for (let i = 0; i < 3; i++) { const bx = (hub.x + 5 + i * 4) * T, by = (hub.y + 5 + (i & 1)) * T; F(bx, by, 22, 34, NC[i]); F(bx + 2, by + 2, 18, 30, '#ffffff'); for (let j = 0; j < 4; j++) F(bx + 2, by + 4 + j * 8, 18, 3, NC[i]) } }
+  if (n == 'forest') { const bx = (mp.cx + 2) * T, by = (hub.y + hub.h - 5) * T; F(bx - 1, by - 1, 82, 50, '#7a3a3a'); for (let j = 0; j < 6; j++) for (let i = 0; i < 10; i++) F(bx + i * 8, by + j * 8, 8, 8, (i + j) & 1 ? '#f6ecdc' : '#e0605a'); F(bx, by + 48, 80, 2, 'rgba(0,0,0,.2)'); for (const [lx, ly] of [[mp.cx - 7, mp.cy - 1], [mp.cx - 7, mp.cy + 2]]) { F(lx * T, ly * T + 4, 24, 9, P.to); F(lx * T + 1, ly * T + 5, 22, 7, '#8a5a38'); F(lx * T + 1, ly * T + 5, 22, 2, '#a8723c') } }
+  if (n == 'beach') { for (let i = 0; i < 3; i++) { const bx = (hub.x + 5 + i * 4) * T, by = (hub.y + 5 + (i & 1)) * T; F(bx - 1, by - 1, 24, 36, '#fff'); F(bx, by, 22, 34, NC[i]); F(bx + 2, by + 2, 18, 30, '#ffffff'); for (let j = 0; j < 4; j++) F(bx + 2, by + 4 + j * 8, 18, 3, NC[i]) } }
   if (n == 'city') { const z = hub; for (let i = 0; i < 6; i++) { F((z.x + 1 + i * 2) * T, (z.y + 3) * T, 2, 2, NC[i % 4]); F((z.x + 1 + i * 2) * T, (z.y + 4) * T, 2, 2, NC[(i + 1) % 4]) } }
   if (n == 'dark') { for (let i = 0; i < 2; i++) { const lx = (hub.x + 1 + i * (hub.w - 3)) * T + 6, ly = (hub.y + 2) * T; F(lx, ly, 3, 22, '#2a2440'); F(lx - 2, ly - 4, 7, 5, '#ffd23c'); ell(lx + 1, ly - 1, 22, 16, 'rgba(255,200,100,.13)', g2) } }
   return MP[n] = mp;
@@ -498,8 +577,8 @@ function spawn() {
   if (n == 'castle') { E.push({ k: 'door', to: 'dark', out: 1, x: mp.door.x * T + 8, y: mp.door.y * T + 16 }); E.push({ k: 'spot', nm: 'throne', ...at(mp.cx, 4) }); E.push({ k: 'vend', ...at(mp.cx + 5, mp.cy - 1) }); npc('rattles', mp.cx - 5, 9); for (let i = 0; i < 4; i++) add({ k: 'enemy', t: 'shadow', vx: 0, vy: 0 }, zs[0]) }
   if (n == 'beach') { const st = zs[3]; E.push({ k: 'spot', nm: 'tower', ...at(st.x + (st.w >> 1), st.y + (st.h >> 1) + 2) }); npc('lou', mp.cx - 2, mp.cy - 3); npc('coco', mp.cx + 2, mp.cy + 1); npc('dex', zs[1].x + zs[1].w + 2, zs[1].y + 4) }
   if (n == 'city') { E.push({ k: 'door', to: 'casino', x: mp.door.x * T + 8, y: mp.door.y * T + 16 }); if (!S.found) npc('caroline', mp.cx - 12, mp.cy + 5) }
-  if (n == 'casino') { E.push({ k: 'door', to: 'city', out: 1, x: mp.door.x * T + 8, y: mp.door.y * T + 20 }); E.push({ k: 'spot', nm: 'house', ...at(mp.cx, 14) }); E.push({ k: 'vend', ...at(4, 14) }); npc('steven', 7, 8); npc('patrick', 22, 8); npc('chips', mp.cx - 3, 8) }
-  E.forEach(e => { if (e.id == 'steven') e.c = CH[0]; if (e.id == 'patrick') e.c = CH[2]; if (e.id == 'caroline') e.c = CH[1] });
+  if (n == 'casino') { E.push({ k: 'door', to: 'city', out: 1, x: mp.door.x * T + 8, y: mp.door.y * T + 20 }); E.push({ k: 'spot', nm: 'house', ...at(mp.cx, 14) }); E.push({ k: 'vend', ...at(4, 14) }); npc('steven', 7, 8); npc('hitori', 22, 8); npc('chips', mp.cx - 3, 8) }
+  E.forEach(e => { if (e.id == 'steven') e.c = CH[0]; if (e.id == 'hitori') e.c = CH[2]; if (e.id == 'caroline') e.c = CH[1] });
 }
 const say = m => { msgS = m; msgT = 150 };
 function D(lines, cb) {   // lines: 'Name:emotion|text' ; empty name = narration (no portrait)
@@ -515,7 +594,7 @@ function options(back) { menu({ title: 'Options', items: [{ x: () => 'Music  < '
 function slots(mode) {
   const back = mode == 'save' ? () => { sc = 'world' } : title;
   menu({ title: mode == 'new' ? 'Choose a save file' : mode == 'save' ? 'Save - pick a slot' : 'Load game', back, items: [0, 1, 2].map(i => ({ x: summ(i), d: mode == 'load' && !ST.get(SK(i)), f: () => {
-    if (mode == 'new') { S = newS(i); goto('forest'); ST.set('syn_played', 1); played = true; sc = 'world'; D(['Caroline:happy|Good morning, Whispering Woods! Isn\'t today GORGEOUS?', 'Steven:sad|It\'s damp. And there are bugs. I\'d rather be at the gym.', 'Patrick:angry|Silence. Once I rule the world, mornings will be optional.', 'Uku:neutral|...chill, guys. Let\'s see what\'s going on. (WASD move, Z talk, Esc pause)']) }
+    if (mode == 'new') { S = newS(i); goto('forest'); ST.set('syn_played', 1); played = true; sc = 'world'; D(['Caroline:happy|Good morning, Whispering Woods! Isn\'t today GORGEOUS?', 'Steven:sad|It\'s damp. And there are bugs. I\'d rather be at the gym.', 'Hitori:angry|Silence. Once I rule the world, mornings will be optional.', 'Uku:neutral|...chill, guys. Let\'s see what\'s going on. (WASD move, Z talk, Esc pause)']) }
     if (mode == 'load') { S = JSON.parse(ST.get(SK(i))); S.slot = i; const sx = S.sx, sy = S.sy; goto(S.m); if (sx) { S.x = sx; S.y = sy } sc = 'world' }
     if (mode == 'save') { S.slot = i; S.sx = S.x; S.sy = S.y; ST.set(SK(i), JSON.stringify(S)); ST.set('syn_played', 1); sc = 'world'; say('Game saved to slot ' + (i + 1) + '.'); beep(660, .2) }
   } })).concat([{ x: 'Back', f: back }]) });
@@ -523,20 +602,22 @@ function slots(mode) {
 function pause() { menu({ title: 'Paused', over: 1, items: [{ x: 'Resume', f: () => sc = 'world' }, { x: 'Quests', f: () => { sc = 'world'; const b = S.b; D(['Quest|' + BI[b].q.map((q, i) => q[2] + ' ' + Math.min(S.p[b][i], q[1]) + '/' + q[1]).join(' / ') + (qdone(b) ? ' - done! Find the story spot.' : '')]) } }, { x: 'Options', f: () => options(pause) }, { x: 'Title', f: title }], back: () => sc = 'world' }) }
 // ==================== WORLD ====================
 function solid(px, py) { const mp = mapOf(), x = px / T | 0, y = py / T | 0; return x < 0 || y < 0 || x >= mp.w || y >= mp.h || mp.t[y * mp.w + x] != 0 }
-const canWalk = (x, y) => !solid(x - 4, y) && !solid(x + 4, y) && !solid(x - 4, y - 3) && !solid(x + 4, y - 3);
+const canWalk = (x, y) => !solid(x - 5, y) && !solid(x + 5, y) && !solid(x - 5, y - 3) && !solid(x + 5, y - 3);
 function worldUpdate() {
   if (DL) {
-    const l = DL.q[DL.i]; DL.c += .8; DL.pt++; const key = l.n + ':' + l.e; if (DL.key != key) { DL.key = key; DL.pt = 0 }
+    const l = DL.q[DL.i], c0 = DL.c | 0; DL.c += .8; DL.pt++; DL.age = (DL.age || 0) + 1; if ((DL.c | 0) > c0 && l.t[c0] && l.t[c0] != ' ' && (c0 & 1)) beep(260 + (l.n.length * 23) % 140, .02, .35); const key = l.n + ':' + l.e; if (DL.key != key) { DL.key = key; DL.pt = 0 }
     if (ok()) { if (DL.c < l.t.length) DL.c = l.t.length; else { DL.i++; DL.c = 0; beep(400, .04); if (DL.i >= DL.q.length) { const cb = DL.cb; DL = null; cb && cb() } } } return;
   }
   if (esc()) { pause(); return }
   S.t++;
   const dx = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0), dy = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0);
   if (dx || dy) {
-    const sp = (keys.ShiftLeft ? 2.2 : 1.5) / Math.hypot(dx, dy), nx = S.x + dx * sp, ny = S.y + dy * sp;
+    const running = !!(keys.ShiftLeft || keys.ShiftRight);
+    const sp = (running ? 2.35 : 1.35) / Math.hypot(dx, dy), nx = S.x + dx * sp, ny = S.y + dy * sp;
+    S.running = running;
     if (canWalk(nx, S.y)) S.x = nx; if (canWalk(S.x, ny)) S.y = ny;
-    S.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : 2) : (dy < 0 ? 3 : 0); S.wf = (S.wf || 0) + .13; trail.unshift([S.x, S.y, S.dir, S.wf]); if (trail.length > 80) trail.pop();
-  } else S.wf = 0;
+    S.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : 2) : (dy < 0 ? 3 : 0); S.moving = true; S.wf = (S.wf || 0) + (S.running ? .22 : .13); trail.unshift([S.x, S.y, S.dir, S.wf]); if (trail.length > 80) trail.pop();
+  } else { S.wf = 0; S.moving = false; S.running = false; }
   const z = zoneAt(S.x, S.y); if (z != curZ) { curZ = z; if (z) ZB = { t: 150, n: z.n, d: z.d || '' } }
   for (const e of E) {
     if (e.k == 'enemy') {
@@ -581,21 +662,21 @@ function npc(e) {
     rattles: () => ['Ser Rattles:laugh|Ha! I have no guts and I\'m STILL fighting!', 'Ser Rattles:neutral|The throne awaits. Mind the shadows, they bite.'],
     lou: () => ['Lifeguard Lou:angry|NO RUNNING by the water!!', 'Lifeguard Lou:neutral|...Okay, running\'s fine if it\'s crabs. Shells are east at Shell Cove. The lighthouse is north. Don\'t look down.'],
     coco: () => once('coco') ? (S.snacks++, ['Coco:happy|Ice cream! Free for friends today!', 'Coco:laugh|Here, have a snack too!']) : ['Coco:smug|Nothing is free twice. Ha! Kidding. Maybe.'],
-    dex: () => ['Dex:smug|Dude, the waves here are totally... static. Weird, right?', 'Dex:neutral|Heard some guy named Patrick wiped out near the lighthouse. Or it was a dream.'],
+    dex: () => ['Dex:smug|Dude, the waves here are totally... static. Weird, right?', 'Dex:neutral|Heard some guy named Hitori wiped out near the lighthouse. Or it was a dream.'],
     chips: () => ['Mr. Chips:smug|A customer! Care for a wager? Your soul is legal tender.', 'Mr. Chips:neutral|The House is behind me. The House does not lose.'],
     steven: () => ['Steven:sad|Don\'t look at me. Fourth shift. Pay is basically air.', 'Steven:neutral|Honestly? Still better than the outdoors.'],
-    patrick: () => ['Patrick:neutral|Uku... you came. I used to rule everything in my head, you know.', 'Patrick:sad|But out there... I got lost. And I didn\'t come back. Some of me stayed here.', 'Patrick:angry|Beat the House, please. It keeps counting me as chips.'],
+    hitori: () => ['Hitori:neutral|Uku... you came. I used to rule everything in my head, you know.', 'Hitori:sad|But out there... I got lost. And I didn\'t come back. Some of me stayed here.', 'Hitori:angry|Beat the House, please. It keeps counting me as chips.'],
     caroline: () => ['Caroline:shock|UKU!! Oh thank goodness, I thought I was the only one left!', 'Caroline:scared|Everyone vanished. No shops, no people... just these buzzing signs.', 'Caroline:happy|But you\'re here! Let\'s stick together!']
   };
   D(L[id](), id == 'caroline' ? () => { S.found = 1; S.party = [1, 3]; E = E.filter(x => x.id != 'caroline'); say('Caroline joined you.') } : null);
 }
 const events = {
-  well() { D(['Caroline:happy|Ooh, a wishing well! Make a wish!', 'Steven:sad|It looks cursed.', 'Patrick:angry|I wish for the WORLD. Hello, nothingness, kneel!', 'Uku:neutral|...it\'s kinda deep, huh.', '|The light goes out. Wind howls. Something laughs under the water.', 'Uku:shock|Guys?', 'Uku:scared|PATRICK?!'], () => { S.party = [3]; S.hp[2] = 0; shake = 40; D(['|Everyone is gone. Only the dark remains. Your greatest fear.', 'Uku:scared|It\'s okay. It\'s just the dark. Find the light...'], () => { mini('dark', () => { S.b = 'dark'; S.party = [3, 0, 1]; D(['|The dark fades. A path of gnarled trees opens to the east.', 'Caroline:shock|Uku! There you are! Have we... lost someone?', 'Steven:sad|Don\'t know. Let\'s keep going.'], () => goto('dark')) }) }) }) },
-  throne() { D(['Caroline:neutral|Why are we in a castle again?', 'Steven:sad|Ugh. No idea. Something about... finding someone?', 'Uku:scared|...someone with a crown? It\'s on the tip of my tongue.', '|One by one, the faces of your friends turn blank. Shadows crawl up the walls.', '|Alone now. Hundreds of tiny legs skitter in the dark...'], () => { shake = 40; mini('spider', () => { S.b = 'beach'; S.party = [3, 0, 1]; D(['Caroline:happy|Uku!! We found you! Look, a beach!', 'Uku:sad|Patrick... his name was Patrick. I remember now.', 'Steven:sad|...Yeah. Me too. Let\'s find him.'], () => goto('beach')) }) }) },
-  tower() { D(['Caroline:happy|A lighthouse! Let\'s climb it!', 'Steven:scared|Nope. Heights. No.', '|You climb alone. The railing is gone. Far below, the waves look like static...', '|Your feet won\'t move. Somewhere, Patrick whispers: "don\'t look down."'], () => { shake = 40; mini('height', () => { S.b = 'city'; S.party = [3]; D(['|You reach the top. The sky flickers like a broken screen.', '|When you look back down, your friends are gone. So is the sea.', '|Neon kanji hum in the dark. You are alone.'], () => goto('city')) }) }) },
+  well() { D(['Caroline:happy|Ooh, a wishing well! Make a wish!', 'Steven:sad|It looks cursed.', 'Hitori:angry|I wish for the WORLD. Hello, nothingness, kneel!', 'Uku:neutral|...it\'s kinda deep, huh.', '|The light goes out. Wind howls. Something laughs under the water.', 'Uku:shock|Guys?', 'Uku:scared|PATRICK?!'], () => { S.party = [3]; S.hp[2] = 0; shake = 40; D(['|Everyone is gone. Only the dark remains. Your greatest fear.', 'Uku:scared|It\'s okay. It\'s just the dark. Find the light...'], () => { mini('dark', () => { S.b = 'dark'; S.party = [3, 0, 1]; D(['|The dark fades. A path of gnarled trees opens to the east.', 'Caroline:shock|Uku! There you are! Have we... lost someone?', 'Steven:sad|Don\'t know. Let\'s keep going.'], () => goto('dark')) }) }) }) },
+  throne() { D(['Caroline:neutral|Why are we in a castle again?', 'Steven:sad|Ugh. No idea. Something about... finding someone?', 'Uku:scared|...someone with a crown? It\'s on the tip of my tongue.', '|One by one, the faces of your friends turn blank. Shadows crawl up the walls.', '|Alone now. Hundreds of tiny legs skitter in the dark...'], () => { shake = 40; mini('spider', () => { S.b = 'beach'; S.party = [3, 0, 1]; D(['Caroline:happy|Uku!! We found you! Look, a beach!', 'Uku:sad|Hitori... his name was Hitori. I remember now.', 'Steven:sad|...Yeah. Me too. Let\'s find him.'], () => goto('beach')) }) }) },
+  tower() { D(['Caroline:happy|A lighthouse! Let\'s climb it!', 'Steven:scared|Nope. Heights. No.', '|You climb alone. The railing is gone. Far below, the waves look like static...', '|Your feet won\'t move. Somewhere, Hitori whispers: "don\'t look down."'], () => { shake = 40; mini('height', () => { S.b = 'city'; S.party = [3]; D(['|You reach the top. The sky flickers like a broken screen.', '|When you look back down, your friends are gone. So is the sea.', '|Neon kanji hum in the dark. You are alone.'], () => goto('city')) }) }) },
   house() { D(['|The House spins its reels. "WELCOME BACK, UKU. THE HOUSE ALWAYS WINS."'], () => startBattle({ k: 'enemy', t: 'house', x: 0, y: 0, boss: 1 })) }
 };
-function ending() { D(['Patrick:sad|Thank you for looking for me, Uku. Out there, I got lost... and in this world, I didn\'t make it.', 'Patrick:happy|But you remembered me. That\'s a kind of synchronicity.', 'Caroline:happy|We\'ll all be here. Always.', 'Steven:smug|Okay fine, the outside wasn\'t that bad.', 'Uku:neutral|...chill.', '|Synchronicity - thanks for playing. (End of the prototype.)'], () => { sc = 'quit2' }) }
+function ending() { D(['Hitori:sad|Thank you for looking for me, Uku. Out there, I got lost... and in this world, I didn\'t make it.', 'Hitori:happy|But you remembered me. That\'s a kind of synchronicity.', 'Caroline:happy|We\'ll all be here. Always.', 'Steven:smug|Okay fine, the outside wasn\'t that bad.', 'Uku:neutral|...chill.', '|Synchronicity - thanks for playing. (End of the prototype.)'], () => { sc = 'quit2' }) }
 
 function drawWorld() {
   const mp = mapOf();
@@ -610,7 +691,7 @@ function drawWorld() {
     if (e.k == 'enemy') drawE(e.t, x, y, tick);
     else if (e.k == 'item') { const b = Math.round(Math.sin(tick / 9) * 2), col = e.s ? '#ffb347' : S.m == 'beach' ? '#ffc0d0' : S.m == 'dark' ? '#d8c0a0' : S.m == 'city' ? '#3ee0ff' : '#9fffa0'; ell(x, y, 6, 2, 'rgba(0,0,0,.25)'); ell(x, y - 6 + b, 8, 8, col + '33'); r(x - 3, y - 9 + b, 6, 6, col); r(x - 2, y - 8 + b, 2, 2, '#fff'); if ((tick >> 4) % 3 == 0) { r(x + 5, y - 13 + b, 1, 3, '#fff'); r(x + 4, y - 12 + b, 3, 1, '#fff') } }
     else if (e.k == 'vend') { ell(x + 2, y, 11, 3, 'rgba(0,0,0,.3)'); r(x - 10, y - 32, 20, 32, '#7a1a1a'); r(x - 9, y - 31, 18, 30, '#d03030'); r(x - 7, y - 29, 14, 15, '#1a2a3a'); for (let j = 0; j < 3; j++) for (let i = 0; i < 4; i++) r(x - 6 + i * 3.4, y - 28 + j * 4.6, 2, 3, NC[(i + j) % 4]); r(x - 7, y - 29, 14, 1, '#8ef'); r(x - 7, y - 29, 2, 15, 'rgba(255,255,255,.18)'); r(x - 7, y - 11, 9, 4, '#111'); r(x + 4, y - 12, 3, 5, '#ffd23c'); r(x - 6, y - 5, 12, 3, '#3a0a0a'); r(x - 2, y - 36 + 4, 4, 1, '#fff') }
-    else if (e.k == 'npc') drawChar(e.c, x, y, e.id == 'steven' || e.id == 'patrick' || e.id == 'chips' ? 0 : (tick >> 6) % 7 == 0 ? 1 : 0, 0, 1);
+    else if (e.k == 'npc') drawChar(e.c, x, y, e.id == 'steven' || e.id == 'hitori' || e.id == 'chips' ? 0 : (tick >> 6) % 7 == 0 ? 1 : 0, 0, 1);
     else if (e.k == 'fire') { ell(x, y, 10, 3, 'rgba(0,0,0,.3)'); r(x - 8, y - 3, 16, 3, '#5a3a1a'); r(x - 6, y - 5, 12, 3, '#7a4a22'); const f = (tick >> 2) & 1; r(x - 4, y - 12 - f, 8, 8, '#e8541a'); r(x - 3, y - 14 - f, 6, 6, '#ff9a2a'); r(x - 1, y - 16 - f, 3, 6, '#ffd23c'); ell(x, y - 8, 28, 20, 'rgba(255,170,70,.10)') }
     else if (e.k == 'sign') { r(x - 1, y - 14, 2, 14, '#6a4a2a'); r(x - 9, y - 22, 18, 9, '#a8723c'); r(x - 9, y - 22, 18, 1, '#c8924c'); r(x - 7, y - 19, 14, 1, '#4a3018'); r(x - 7, y - 16, 10, 1, '#4a3018') }
     else if (e.k == 'door' && !e.out) { /* drawn in map */ }
@@ -621,8 +702,8 @@ function drawWorld() {
       if (e.nm == 'house') { drawE('house', x, y, tick, 1.4) }
     }
   } });
-  L.push({ y: S.y, f: () => drawChar(CH[3], Math.round(S.x - cx + ox), Math.round(S.y - cy + oy), S.dir, S.wf ? Math.floor(S.wf * 2.4) % 4 : 0, 1) });
-  S.party.filter(i => i != 3).forEach((i, j) => { const t = trail[Math.min((j + 1) * 14, trail.length - 1)]; if (t) L.push({ y: t[1] - .1, f: () => drawChar(CH[i], Math.round(t[0] - cx + ox), Math.round(t[1] - cy + oy), t[2], S.wf ? Math.floor(t[3] * 2.4) % 4 : 0, 1) }) });
+  L.push({ y: S.y, f: () => drawChar({ ...CH[3], running: S.running }, Math.round(S.x - cx + ox), Math.round(S.y - cy + oy), S.dir, S.moving ? 1 + Math.floor(S.wf) % 4 : 0, 1) });
+  S.party.filter(i => i != 3).forEach((i, j) => { const t = trail[Math.min((j + 1) * 14, trail.length - 1)]; if (t) L.push({ y: t[1] - .1, f: () => drawChar({ ...CH[i], running: S.running }, Math.round(t[0] - cx + ox), Math.round(t[1] - cy + oy), t[2], S.moving ? 1 + Math.floor(t[3]) % 4 : 0, 1) }) });
   L.sort((a, b) => a.y - b.y).forEach(o => o.f());
   X.drawImage(mp.tp, -cx + ox, -cy + oy);
   // ambient particles + lighting
@@ -630,8 +711,8 @@ function drawWorld() {
   const B0 = BI[S.m];
   if (B0.dk) {
     const o = drawWorld.o || (drawWorld.o = document.createElement('canvas')); o.width = VW; o.height = VH; const g = o.getContext('2d');
-    g.fillStyle = 'rgba(2,2,12,.94)'; g.fillRect(0, 0, VW, VH); g.globalCompositeOperation = 'destination-out';
-    const px = S.x - cx, py = S.y - cy - 12, rr = (S.m == 'castle' ? 120 : 100) + Math.sin(tick / 20) * 3;
+    g.fillStyle = 'rgba(8,6,26,.80)'; g.fillRect(0, 0, VW, VH); g.globalCompositeOperation = 'destination-out';
+    const px = S.x - cx, py = S.y - cy - 12, rr = (S.m == 'castle' ? 150 : 135) + Math.sin(tick / 20) * 3;
     const gr = g.createRadialGradient(px, py, 8, px, py, rr); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, VW, VH);
     E.filter(e => e.k == 'fire').forEach(e => { const q = g.createRadialGradient(e.x - cx, e.y - cy - 8, 4, e.x - cx, e.y - cy - 8, 70); q.addColorStop(0, 'rgba(0,0,0,.9)'); q.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = q; g.fillRect(0, 0, VW, VH) });
     X.drawImage(o, 0, 0);
@@ -643,25 +724,43 @@ function drawWorld() {
   // HUD + dialogue in the crisp UI layer
   sU();
   r(2, 2, 112, 22, 'rgba(10,8,22,.7)'); txt('Lv' + S.lv + '  XP ' + S.xp + '/' + S.lv * 20 + '  Snacks ' + S.snacks, 5, 3, '#fff', 'left', 6);
-  S.party.forEach((i, j) => { r(5 + j * 27, 14, 25, 5, '#000'); r(6 + j * 27, 15, 23 * S.hp[i] / S.mh[i], 3, CH[i].top) });
+  S.party.forEach((i, j) => { r(5 + j * 27, 14, 25, 5, '#000'); r(6 + j * 27, 15, 23 * S.hp[i] / S.mh[i], 3, CH[i].ec) });
   const b = S.b, qs = BI[b].q; r(W - 122, 2, 120, 8 + qs.length * 8, 'rgba(10,8,22,.7)');
   qs.forEach((q, i) => txt('- ' + q[2] + ' ' + Math.min(S.p[b][i], q[1]) + '/' + q[1], W - 5, 3 + i * 8, S.p[b][i] >= q[1] ? '#8f8' : '#ddd', 'right', 6));
-  if (ZB.t > 0) { ZB.t--; const a = Math.min(1, ZB.t / 30, (150 - ZB.t) / 15); X.globalAlpha = a; r(80, 28, 160, 20, 'rgba(10,8,22,.8)'); r(80, 28, 160, 1, '#e8e0ff'); txt(ZB.n, W / 2, 29, '#ffd23c', 'center', 8); txt(ZB.d, W / 2, 39, '#ddd', 'center', 5); X.globalAlpha = 1 }
+  if (ZB.t > 0) { ZB.t--; if (!DL) { const a = Math.min(1, ZB.t / 30, (150 - ZB.t) / 15); X.globalAlpha = a; r(70, H - 27, 180, 22, '#000'); r(70, H - 27, 180, 1, '#fff'); r(70, H - 6, 180, 1, '#fff'); r(70, H - 27, 1, 22, '#fff'); r(249, H - 27, 1, 22, '#fff'); txt(ZB.n.toUpperCase(), W / 2, H - 25, '#fff', 'center', 8); txt(ZB.d, W / 2, H - 15, '#bbb', 'center', 6); X.globalAlpha = 1 } }
   if (msgT > 0) { msgT--; r(40, 108, 240, 12, 'rgba(10,8,22,.8)'); txt(msgS, W / 2, 109, '#ff8', 'center', 6) }
   if (!DL) { let near = null; for (const e of E) if (['npc', 'vend', 'door', 'spot', 'sign'].includes(e.k) && Math.hypot(S.x - e.x, S.y - e.y) < (e.k == 'door' ? 34 : 26)) near = e; if (near) { const nm = near.k == 'npc' ? near.c.n : near.k == 'vend' ? 'Vending Machine (save)' : ''; txt('[Z] ' + nm, (near.x - cx) / 2, (near.y - cy) / 2 - (near.k == 'vend' ? 24 : 26), '#fff', 'center', 6) } }
   else drawDialog();
 }
+function wrapPx(str, maxW, sz) {
+  const out = []; let line = '';
+  for (const w of str.split(' ')) { const t = line ? line + ' ' + w : w; if (tw(t, sz) > maxW && line) { out.push(line); line = w } else line = t }
+  out.push(line); return out;
+}
 function drawDialog() {
-  const l = DL.q[DL.i], def = LK[l.n];
-  if (def) {   // face pops up above the box and changes with the line's emotion
-    const t = DL.pt, off = t < 12 ? Math.pow(1 - t / 12, 2) * 40 : 0; sW();
-    portrait(def, l.e, 14, 142 + off, 2, DL.c < l.t.length, tick % 230 < 6); sU();
+  sU(); X.globalAlpha = 1; X.imageSmoothingEnabled = false;
+  const l = DL.q[DL.i], def = LK[l.n], age = DL.age || 0;
+  const BX = 6, BW = 308, BH = 38, BY = H - BH - 5;                 // the box never moves: always anchored to the bottom
+  if (DL.wl !== DL.i) { DL.wl = DL.i; DL.lines = wrapPx(l.t, BW - 14, 8) }
+  if (DL.sp !== l.n) { DL.sp = l.n; DL.slide = 0 } DL.slide = (DL.slide || 0) + 1;
+  // portrait frame: slides up out of the textbox when someone new starts talking, tiny hop when their expression changes
+  if (def) {
+    const PS = 42, PX = BX + BW - PS, rise = Math.min(1, DL.slide / 8);
+    const fy = BY - PS + 1 + Math.round((1 - rise) * (PS - 2));
+    r(PX, fy, PS, PS, '#fff'); r(PX + 1, fy + 1, PS - 2, PS - 2, '#000');
+    X.save(); X.beginPath(); X.rect(PX + 1, fy + 1, PS - 2, PS - 2); X.clip();
+    const hop = DL.pt < 6 ? -Math.round(Math.sin(DL.pt / 6 * Math.PI) * 2) : 0;
+    portrait(def, l.e, PX + 1, fy + 1 + hop, (PS - 2) / 56, DL.c < l.t.length, tick % 230 < 6);
+    X.restore();
   }
-  r(6, 118, 308, 56, 'rgba(14,10,28,.95)'); r(6, 118, 308, 1, '#e8e0ff'); r(6, 173, 308, 1, '#e8e0ff'); r(6, 118, 1, 56, '#e8e0ff'); r(313, 118, 1, 56, '#e8e0ff');
-  if (def) { r(60, 110, 12 + l.n.length * 4.2, 11, '#e8e0ff'); r(61, 111, 10 + l.n.length * 4.2, 9, '#2a2048'); txt(l.n, 66, 111, '#ffd23c', 'left', 7) }
-  const tx = def ? 66 : 16;
-  wrap(l.t.slice(0, DL.c | 0), def ? 54 : 70).forEach((s, i) => txt(s, tx, 124 + i * 11, '#fff', 'left', 8));
-  if (DL.c >= l.t.length && (tick >> 4) & 1) txt('v', 302, 162, '#ffd23c', 'left', 7);
+  r(BX, BY, BW, BH, '#fff'); r(BX + 1, BY + 1, BW - 2, BH - 2, '#000');
+  if (def) {
+    const nm = l.n.toUpperCase(); const nw = Math.ceil(tw(nm, 8)) + 12, ty = BY - 14;
+    r(BX, ty, nw, 13, '#fff'); r(BX + 1, ty + 1, nw - 2, 11, '#000'); txt(nm, BX + 6, ty + 2, '#fff', 'left', 8);
+  }
+  let left = DL.c | 0;
+  DL.lines.slice(0, 3).forEach((line, i) => { if (left <= 0) return; txt(line.slice(0, left), BX + 7, BY + 5 + i * 10.5, '#fff', 'left', 8); left -= line.length + 1 });
+  if (DL.c >= l.t.length && (tick >> 4) & 1) { r(BX + BW - 10, BY + BH - 8, 5, 1, '#fff'); r(BX + BW - 9, BY + BH - 7, 3, 1, '#fff'); r(BX + BW - 8, BY + BH - 6, 1, 1, '#fff') }
 }
 // ==================== POLAROID (vending machine photo) ====================
 function polaroid() {
@@ -694,7 +793,7 @@ function act(k) {
   if (k == 1) {
     if (m == 0) { B.g = 1; say2('Steven sulks... "This won\'t end well." (guard)', adv) }
     if (m == 1) { const h = 10 + S.lv * 2; S.party.forEach(i => S.hp[i] = Math.min(S.mh[i], S.hp[i] + h)); beep(700, .2); say2('Caroline\'s sunshine heals everyone ' + h + '!', adv) }
-    if (m == 2) { const d = dmg(m) * 2; B.hp -= d; B.shk = 8; say2('Patrick: "DECREE!" ' + d + ' damage!', adv) }
+    if (m == 2) { const d = dmg(m) * 2; B.hp -= d; B.shk = 8; say2('Hitori: "DECREE!" ' + d + ' damage!', adv) }
     if (m == 3) { B.ch = 1; S.hp[3] = Math.min(S.mh[3], S.hp[3] + 8); say2('Uku: "chill." The enemy calms down.', adv) }
   }
   if (k == 2) { if (S.snacks < 1) return say2('No snacks left!', () => { B.mode = 'menu' }); S.snacks--; S.hp[m] = Math.min(S.mh[m], S.hp[m] + 25); beep(600, .1); say2(c + ' eats a snack (+25 HP).', adv) }
@@ -806,8 +905,8 @@ function loop() {
 }
 let last = 0, acc = 0;
 (function f(t) { acc += Math.min(100, t - last); last = t; while (acc >= 16.67) { loop(); acc -= 16.67 } requestAnimationFrame(f) })(0);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { MP = {} });
+if (document.fonts) { document.fonts.load('16px "Synchronicity Hand"'); document.fonts.ready.then(() => { MP = {} }) }
 title();
-</script>
+    </script>
 </body>
 </html>
