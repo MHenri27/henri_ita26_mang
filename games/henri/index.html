@@ -1,21 +1,116 @@
-<!DOCTYPE html>
-<html lang="et">
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Henri — mäng</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; background: #0a0e12; color: #e8f0ff; display: grid; place-items: center; padding: 1.5rem; }
-    a { color: #5eead4; }
-    .box { text-align: center; max-width: 28rem; line-height: 1.6; }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Temple Dash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="box">
-    <h1>Henri</h1>
-    <p>Siia tuleb sinu mäng. Asenda see fail või lisa siia oma HTML/CSS/JS.</p>
-    <p><a href="../../index.html">← tagasi dashboardile</a></p>
+  <canvas id="game"></canvas>
+
+  <!-- In-game HUD -->
+  <div class="hud" id="hud" hidden>
+    <div class="hud-left">
+      <span class="score" id="score">0</span>
+      <span class="coin-count"><i class="ph-fill ph-coin"></i><span id="run-coins">0</span></span>
+    </div>
+    <div class="hud-right">
+      <div class="hud-buttons">
+        <button class="icon-btn" id="mute-btn" aria-label="Toggle sound"><i class="ph-fill ph-speaker-high"></i></button>
+        <button class="icon-btn" id="pause-btn" aria-label="Pause"><i class="ph-fill ph-pause"></i></button>
+      </div>
+      <div class="hearts" id="hearts"></div>
+      <div class="boost" id="boost" hidden>
+        <i class="ph-fill ph-lightning"></i>
+        <span class="boost-bar" id="boost-bar"></span>
+      </div>
+    </div>
   </div>
+
+  <div class="turn-hint" id="turn-hint" hidden>
+    <i class="ph-fill ph-arrow-bend-up-left" id="turn-icon"></i>
+    <span>Turn</span>
+  </div>
+
+  <section class="screen" id="menu">
+    <div class="panel">
+      <h1>Temple Dash</h1>
+      <p>Run the old temple path. Take the corners, dodge the traps and collect coins to buy upgrades.</p>
+      <div class="stats-row">
+        <span class="wallet"><i class="ph-fill ph-coin"></i><span class="wallet-amount">0</span></span>
+        <span class="best">Best <strong id="menu-best">0</strong></span>
+      </div>
+      <div class="actions">
+        <button class="btn" id="start-btn">Start run</button>
+        <button class="btn secondary" id="shop-btn">Upgrades</button>
+      </div>
+      <ul class="keys">
+        <li><span><kbd>&larr;</kbd><kbd>&rarr;</kbd></span> Switch lane, turn at corners</li>
+        <li><span><kbd>&uarr;</kbd><kbd>Space</kbd></span> Jump</li>
+        <li><span><kbd>&darr;</kbd></span> Slide</li>
+        <li><span><kbd>P</kbd><kbd>M</kbd></span> Pause, sound</li>
+      </ul>
+      <p class="hint">On touch: swipe left, right, up or down.</p>
+      <a class="back" href="../../index.html">Back to dashboard</a>
+    </div>
+  </section>
+
+  <section class="screen" id="shop" hidden>
+    <div class="panel wide">
+      <div class="shop-head">
+        <h2>Upgrades</h2>
+        <span class="wallet"><i class="ph-fill ph-coin"></i><span class="wallet-amount">0</span></span>
+      </div>
+      <ul class="shop-list" id="shop-list"></ul>
+      <button class="btn secondary" id="shop-back">Done</button>
+    </div>
+  </section>
+
+  <section class="screen" id="pause" hidden>
+    <div class="panel">
+      <h2>Paused</h2>
+      <div class="actions">
+        <button class="btn" id="resume-btn">Resume</button>
+        <button class="btn secondary" id="quit-btn">Quit to menu</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="over" hidden>
+    <div class="panel">
+      <h2>Out of hearts</h2>
+      <dl class="results">
+        <div><dt>Score</dt><dd id="final-score">0</dd></div>
+        <div><dt>Coins</dt><dd id="final-coins">0</dd></div>
+        <div><dt>Best</dt><dd id="final-best">0</dd></div>
+      </dl>
+      <p class="new-best" id="new-best" hidden>New best run</p>
+      <div class="actions">
+        <button class="btn revive" id="revive-btn">
+          <span>Revive</span>
+          <span class="cost"><i class="ph-fill ph-coin"></i><span id="revive-cost">100</span></span>
+        </button>
+        <button class="btn" id="again-btn">Run again</button>
+        <button class="btn secondary" id="over-shop-btn">Upgrades</button>
+      </div>
+      <p class="hint">You have <span class="wallet-amount">0</span> coins.</p>
+    </div>
+  </section>
+
+  <script src="lib/three.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/path.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
 </body>
 </html>
