@@ -1,21 +1,299 @@
 <!DOCTYPE html>
-<html lang="et">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Karl — mäng</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; background: #0a0e12; color: #e8f0ff; display: grid; place-items: center; padding: 1.5rem; }
-    a { color: #5eead4; }
-    .box { text-align: center; max-width: 28rem; line-height: 1.6; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Frosty Friends</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ========== CSS ========== */
+:root{--bg:#e6f5fc;--card:#fff;--ink:#0b2a44;--muted:#52708a;--line:#c3e1f2;--accent:#1478c8;--accent-ink:#fff;--good:#1fa56f;--warn:#e29a12;--bad:#d9434a;--sky1:#081a36;--sky2:#1b6aa5;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#06121e;--card:#0e2237;--ink:#e4f2ff;--muted:#86a9c4;--line:#1c3a55;--accent:#4db3ff;--accent-ink:#04121f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#06121e;--card:#0e2237;--ink:#e4f2ff;--muted:#86a9c4;--line:#1c3a55;--accent:#4db3ff;--accent-ink:#04121f;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Fredoka",system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.4}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+h1{margin:0;font-size:1.5rem;font-weight:600}
+h2{margin:0 0 10px;font-size:1.1rem;font-weight:600}
+.card{background:var(--card);border:2px solid var(--line);border-radius:18px;padding:14px}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:10px 14px;font-weight:600}
+.btn:disabled,.item:disabled{opacity:.5;cursor:not-allowed}
+.btn.alt{background:transparent;color:var(--ink);border:2px solid var(--line)}
+.hint{color:var(--muted);margin:0 0 10px}
+
+/* start screen */
+.start{text-align:center;padding-top:24px}
+.start p{color:var(--muted)}
+.picks{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:20px 0}
+.pick{width:200px;background:var(--card);border:3px solid var(--line);border-radius:22px;padding:18px 10px}
+.pick .em{font-size:4.5rem;display:block}
+.pick small{color:var(--muted);display:block}
+.pick[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 25%,transparent)}
+.start input{font:inherit;padding:10px 12px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);text-align:center;margin-right:8px;width:180px}
+
+/* top bar */
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.stats{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--card);border:2px solid var(--line);border-radius:999px;padding:4px 12px;font-weight:600}
+.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.side{display:grid;gap:14px;align-content:start}
+
+/* scene */
+.scene{position:relative;height:310px;border-radius:18px;overflow:hidden;background:linear-gradient(var(--sky1),var(--sky2));border:2px solid var(--line)}
+.aurora{position:absolute;inset:-20% -10% 30% -10%;background:radial-gradient(ellipse at 30% 40%,#5ef2b0aa,transparent 55%),radial-gradient(ellipse at 70% 30%,#8a7dffaa,transparent 55%);filter:blur(18px);animation:sway 9s ease-in-out infinite alternate}
+@keyframes sway{to{transform:translateX(8%) skewX(-8deg);opacity:.7}}
+.flake{position:absolute;top:-10px;color:#fff;opacity:.8;animation:fall linear infinite;pointer-events:none}
+@keyframes fall{to{transform:translateY(340px)}}
+.floe{position:absolute;left:-5%;right:-5%;bottom:-30px;height:110px;background:linear-gradient(#f4fbff,#bfe3f3);border-radius:50% 50% 0 0/40% 40% 0 0}
+.pet{position:absolute;left:50%;bottom:44px;transform:translateX(-50%);font-size:var(--ps,4rem);line-height:1;background:none;border:0;padding:0;transition:font-size .6s;user-select:none;-webkit-tap-highlight-color:transparent}
+.pet.pop{animation:pop .25s}
+@keyframes pop{50%{transform:translateX(-50%) scale(1.12) rotate(-4deg)}}
+.bubble{position:absolute;top:12px;left:12px;right:12px;background:#ffffffe6;color:#0b2a44;border-radius:14px;padding:6px 12px;font-weight:600;text-align:center}
+.float{position:absolute;color:#fff;font-weight:600;text-shadow:0 1px 3px #000a;pointer-events:none;animation:up .8s forwards}
+@keyframes up{to{transform:translateY(-50px);opacity:0}}
+.again{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:2}
+.name{display:flex;justify-content:space-between;margin:12px 0 6px;font-weight:600}
+.meter{margin:8px 0}
+.meter label{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted)}
+.track0{height:12px;border-radius:99px;background:var(--line);overflow:hidden}
+.track0>i{display:block;height:100%;width:0;border-radius:99px;background:var(--good);transition:width .4s,background .4s}
+
+/* panels */
+.list{display:grid;gap:8px}
+.item{display:flex;align-items:center;gap:10px;text-align:left;background:transparent;border:2px solid var(--line);border-radius:14px;padding:8px 10px}
+.item:not(:disabled):hover{border-color:var(--accent)}
+.item .em{font-size:1.8rem}
+.item b{display:block}.item small{color:var(--muted)}
+.item .cost{margin-left:auto;font-weight:600;white-space:nowrap}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:#031020b3;display:grid;place-items:center;padding:16px;z-index:10}
+.modal{background:var(--card);border-radius:20px;border:2px solid var(--line);padding:18px;width:min(420px,100%);max-height:100%;overflow:auto}
+.bar2{margin:6px 0 10px;font-weight:600}
+.holes,.cards{display:grid;gap:8px;grid-template-columns:repeat(3,1fr)}
+.cards{grid-template-columns:repeat(4,1fr)}
+.hole,.card2{aspect-ratio:1;font-size:2rem;border-radius:50%;border:0;background:radial-gradient(#1b5f8f,#0b3252)}
+.card2{border-radius:14px;background:var(--line)}
+.card2.up{background:#fff;color:#000}
+.track{position:relative;height:36px;border-radius:99px;background:var(--line);margin:14px 0}
+.zone{position:absolute;top:0;bottom:0;background:var(--good);opacity:.8;border-radius:99px}
+.mark{position:absolute;top:-4px;width:12px;height:44px;border-radius:6px;background:var(--ink);transform:translateX(-50%)}
+.big{font-size:1.2rem;font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:20;font-weight:600;max-width:90%;text-align:center}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
-  <div class="box">
-    <h1>Karl</h1>
-    <p>Siia tuleb sinu mäng. Asenda see fail või lisa siia oma HTML/CSS/JS.</p>
-    <p><a href="../../index.html">← tagasi dashboardile</a></p>
+<div class="wrap">
+
+<section id="start" class="start" hidden>
+  <h1>Frosty Friends</h1>
+  <p>Raise a baby of the ice. Feed it, play with it, and watch it grow up.</p>
+  <div class="picks">
+    <button class="pick" data-t="penguin" aria-pressed="true"><span class="em">🐧</span><b>Penguin chick</b><small>Gets lonely quicker, eats less</small></button>
+    <button class="pick" data-t="bear" aria-pressed="false"><span class="em">🐻‍❄️</span><b>Polar bear cub</b><small>Gets hungry quicker, plays less</small></button>
   </div>
+  <div><input id="nm" maxlength="14" placeholder="Name your friend" aria-label="Name"><button class="btn" id="go">Start raising</button></div>
+</section>
+
+<section id="game" hidden>
+  <div class="top">
+    <h1>Frosty Friends</h1>
+    <div class="stats"><span class="chip">🐟 <span id="fish">0</span></span><span class="chip">👆 +<span id="fpc">1</span></span><span class="chip">⏱ +<span id="fps">0</span>/s</span></div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div class="scene" id="scene">
+        <div class="aurora"></div>
+        <div class="bubble" id="bubble"></div>
+        <div class="floe"></div>
+        <button class="pet" id="pet" aria-label="Pet your friend to collect fish">🐧</button>
+        <button class="btn again" id="again" hidden>Raise a new friend</button>
+      </div>
+      <div class="name"><span id="pname"></span><span id="pstage"></span></div>
+      <div class="meter"><label>Growth <span id="gtxt"></span></label><div class="track0"><i id="gb"></i></div></div>
+      <div class="meter"><label>Fullness <span id="htxt"></span></label><div class="track0"><i id="hb"></i></div></div>
+      <div class="meter"><label>Happiness <span id="jtxt"></span></label><div class="track0"><i id="jb"></i></div></div>
+      <p class="hint" style="margin:8px 0 0">Tap your friend to collect fish. Feeding and games make it grow.</p>
+    </div>
+    <div class="side">
+      <div class="card"><h2>Feed</h2><div class="list" id="feeds"></div></div>
+      <div class="card"><h2>Play games</h2><div class="list" id="games"></div></div>
+      <div class="card"><h2>Ice shop</h2><div class="list" id="shop"></div></div>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="overlay" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt">
+    <h2 id="mt"></h2><div id="mb"></div>
+    <p style="text-align:right;margin:14px 0 0"><button class="btn alt" id="mx">Close</button></p>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* ========== JS ========== */
+const $=s=>document.querySelector(s), clamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,v));
+const PETS={
+  penguin:{e:'🐧',label:'Penguin chick',hd:.2,jd:.35,stages:['Fluffy chick','Waddling youngster','Sleek teenager','Grown emperor']},
+  bear:{e:'🐻‍❄️',label:'Polar bear cub',hd:.35,jd:.2,stages:['Tiny cub','Playful cub','Strong juvenile','Mighty bear']}
+};
+const GROW=[0,60,150,300];
+const FEEDS=[
+  {n:'Small fish',e:'🐟',c:5,h:15,g:2},
+  {n:'Shrimp snack',e:'🦐',c:20,h:40,g:7},
+  {n:'Seafood feast',e:'🦑',c:60,h:100,g:22}];
+const UPS=[
+  {id:'rod',e:'🎣',n:'Ice fishing rod',d:'+1 fish per tap',base:15},
+  {id:'net',e:'🕸️',n:'Fishing net',d:'+1 fish per second',base:50},
+  {id:'igloo',e:'🛖',n:'Cozy igloo',d:'Slows hunger and boredom',base:120}];
+const GAMES=[
+  {e:'🐟',n:'Fish catch',d:'Tap the fish, skip the ice',f:()=>gFish()},
+  {e:'🧠',n:'Memory match',d:'Find the six pairs',f:()=>gMem()},
+  {e:'⛄',n:'Snowball toss',d:'Time your throw',f:()=>gTime()}];
+
+let S=load(), timers=[], pick='penguin', toastT;
+function load(){try{const j=localStorage.getItem('frostyfriends');return j?JSON.parse(j):null}catch(e){return null}}
+function save(){try{localStorage.setItem('frostyfriends',JSON.stringify(S))}catch(e){}}
+const stage=()=>{let i=0;GROW.forEach((g,k)=>{if(S.growth>=g)i=k});return i};
+const cost=u=>Math.ceil(u.base*Math.pow(1.6,S.up[u.id]));
+
+/* ---- start ---- */
+document.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{
+  pick=b.dataset.t;document.querySelectorAll('.pick').forEach(x=>x.setAttribute('aria-pressed',x===b))});
+$('#go').onclick=()=>{
+  const name=$('#nm').value.trim()||(pick==='bear'?'Nanuk':'Pingu');
+  const keep=S&&S.done?{fish:S.fish,up:S.up,raised:S.raised+1}:{fish:20,up:{rod:0,net:0,igloo:0},raised:0};
+  S={type:pick,name,hunger:80,joy:80,growth:0,done:false,...keep};
+  save();showGame();
+};
+$('#again').onclick=()=>{$('#game').hidden=true;$('#start').hidden=false};
+
+/* ---- game screen ---- */
+function showGame(){
+  $('#start').hidden=true;$('#game').hidden=false;
+  $('#pet').textContent=PETS[S.type].e;
+  $('#pname').textContent=S.name;
+  build();render();
+}
+function mk(list,box,fn,html){
+  const el=$(box);el.textContent='';
+  list.forEach((x,i)=>{const b=document.createElement('button');b.className='item';b.innerHTML=html(x);b.onclick=()=>fn(x);b.dataset.i=i;el.append(b)});
+}
+function build(){
+  mk(FEEDS,'#feeds',feed,f=>`<span class="em">${f.e}</span><span><b>${f.n}</b><small>+${f.h} fullness, +${f.g} growth</small></span><span class="cost">${f.c} 🐟</span>`);
+  mk(GAMES,'#games',g=>g.f(),g=>`<span class="em">${g.e}</span><span><b>${g.n}</b><small>${g.d}</small></span>`);
+  mk(UPS,'#shop',buy,u=>`<span class="em">${u.e}</span><span><b>${u.n} <span class="lv"></span></b><small>${u.d}</small></span><span class="cost"></span>`);
+}
+function bar(id,v,txt){const el=$('#'+id);el.style.width=v+'%';el.style.background=v<20?'var(--bad)':v<45?'var(--warn)':'var(--good)'}
+function render(){
+  const p=PETS[S.type],st=stage(),fpc=1+S.up.rod,fps=S.up.net;
+  $('#fish').textContent=Math.floor(S.fish);$('#fpc').textContent=fpc;$('#fps').textContent=fps;
+  $('#pstage').textContent=p.stages[st];
+  $('#gtxt').textContent=Math.round(S.growth/3)+'%';$('#htxt').textContent=Math.round(S.hunger)+'%';$('#jtxt').textContent=Math.round(S.joy)+'%';
+  bar('gb',S.growth/3);bar('hb',S.hunger);bar('jb',S.joy);
+  $('#scene').style.setProperty('--ps',(3+S.growth/300*4.2)+'rem');
+  $('#bubble').textContent=S.done?`🎉 ${S.name} is all grown up!`:S.hunger<20?`😢 ${S.name} is hungry!`:S.joy<20?`🥺 ${S.name} is bored. Play a game!`:`😊 ${S.name} is happy`;
+  $('#again').hidden=!S.done;
+  document.querySelectorAll('#feeds .item').forEach((b,i)=>b.disabled=S.done||S.fish<FEEDS[i].c);
+  document.querySelectorAll('#shop .item').forEach((b,i)=>{const u=UPS[i];b.disabled=S.fish<cost(u);b.querySelector('.cost').textContent=cost(u)+' 🐟';b.querySelector('.lv').textContent='Lv '+S.up[u.id]});
+}
+function toast(t){const e=$('#toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2400)}
+function grow(n){
+  if(S.done)return;const s0=stage();S.growth=Math.min(300,S.growth+n);
+  if(S.growth>=300){S.done=true;toast(`${S.name} is fully grown! 🎉`)}
+  else if(stage()>s0)toast(`${S.name} grew into a ${PETS[S.type].stages[stage()].toLowerCase()}!`);
+}
+function feed(f){
+  if(S.hunger>=98)return toast(`${S.name} is full!`);
+  S.fish-=f.c;S.hunger=clamp(S.hunger+f.h);S.joy=clamp(S.joy+3);grow(f.g);render();save();
+}
+function buy(u){const c=cost(u);if(S.fish<c)return;S.fish-=c;S.up[u.id]++;render();save()}
+
+/* tap the pet */
+$('#pet').onclick=e=>{
+  const g=Math.max(1,Math.round((1+S.up.rod)*(S.hunger<=0?.5:1)));
+  S.fish+=g;S.joy=clamp(S.joy+.5);render();
+  const pet=$('#pet');pet.classList.remove('pop');void pet.offsetWidth;pet.classList.add('pop');
+  const sc=$('#scene').getBoundingClientRect(),f=document.createElement('span');
+  f.className='float';f.textContent='+'+g+' 🐟';
+  f.style.left=((e.clientX||sc.left+sc.width/2)-sc.left-20)+'px';f.style.top=((e.clientY||sc.top+150)-sc.top-30)+'px';
+  $('#scene').append(f);setTimeout(()=>f.remove(),800);
+};
+
+/* tick */
+setInterval(()=>{
+  if(!S||$('#game').hidden)return;
+  const p=PETS[S.type],f=Math.pow(.85,S.up.igloo);
+  if(S.hunger>0)S.fish+=S.up.net;
+  S.hunger=clamp(S.hunger-p.hd*f);S.joy=clamp(S.joy-p.jd*f);render();
+},1000);
+setInterval(()=>{if(S)save()},5000);
+
+/* snow */
+(()=>{const sc=$('#scene');for(let i=0;i<22;i++){const s=document.createElement('span');s.className='flake';s.textContent='❄';
+  s.style.left=Math.random()*100+'%';s.style.fontSize=(8+Math.random()*10)+'px';
+  s.style.animationDuration=(5+Math.random()*7)+'s';s.style.animationDelay=(-Math.random()*10)+'s';sc.prepend(s)}})();
+
+/* ---- modal + minigames ---- */
+function openM(title,html){$('#mt').textContent=title;$('#mb').innerHTML=html;$('#modal').hidden=false}
+function cleanup(){timers.forEach(t=>{clearInterval(t);clearTimeout(t)});timers=[]}
+$('#mx').onclick=()=>{cleanup();$('#modal').hidden=true};
+function finish(title,fish,gr,msg){
+  fish=Math.round(fish);gr=Math.round(gr);
+  S.fish+=fish;S.joy=clamp(S.joy+20);S.hunger=clamp(S.hunger-8);grow(gr);render();save();
+  openM(title+' complete',`<p class="big">${msg}</p><p>+${fish} 🐟 · happiness +20 · fullness −8${S.done?'':` · growth +${gr}`}</p>`);
+}
+
+function gFish(){
+  let sc=0,t=15;
+  openM('Fish catch','<p class="hint">Tap fish as they pop up. Ice costs you 2 points.</p><div class="bar2">Time <b id="gt">15</b>s · Score <b id="gs">0</b></div><div class="holes" id="holes"></div>');
+  const H=$('#holes');
+  for(let i=0;i<9;i++){const b=document.createElement('button');b.className='hole';b.setAttribute('aria-label','Ice hole');
+    b.onclick=()=>{const k=b.dataset.k;if(!k)return;sc=k==='f'?sc+1:Math.max(0,sc-2);b.textContent='';b.dataset.k='';$('#gs').textContent=sc};H.append(b)}
+  const hs=[...H.children];
+  timers.push(setInterval(()=>{const b=hs[Math.random()*9|0];if(b.dataset.k)return;const f=Math.random()<.78;
+    b.textContent=f?'🐟':'🧊';b.dataset.k=f?'f':'i';setTimeout(()=>{b.textContent='';b.dataset.k=''},850)},600));
+  timers.push(setInterval(()=>{$('#gt').textContent=--t;if(t<=0){cleanup();finish('Fish catch',sc*2,sc*.6,`You caught ${sc} fish!`)}},1000));
+}
+
+function gMem(){
+  const E=['🐟','🦐','❄️','🧊','⭐','🐚'];
+  const c=[...E,...E].sort(()=>Math.random()-.5);let first=null,lock=false,mv=0,ok=0;
+  openM('Memory match','<p class="hint">Find all six pairs in as few moves as you can.</p><div class="bar2">Moves <b id="gm">0</b></div><div class="cards" id="cards"></div>');
+  c.forEach(e=>{const b=document.createElement('button');b.className='card2';b.textContent='❔';b.setAttribute('aria-label','Hidden card');
+    b.onclick=()=>{
+      if(lock||b.classList.contains('up'))return;
+      b.textContent=e;b.classList.add('up');
+      if(!first){first=b;return}
+      mv++;$('#gm').textContent=mv;const a=first;first=null;
+      if(a.textContent===e){if(++ok===6)timers.push(setTimeout(()=>finish('Memory match',Math.max(10,50-mv*3),8,`Cleared in ${mv} moves!`),400))}
+      else{lock=true;timers.push(setTimeout(()=>{a.textContent=b.textContent='❔';a.classList.remove('up');b.classList.remove('up');lock=false},700))}
+    };$('#cards').append(b)});
+}
+
+function gTime(){
+  let r=0,sc=0,pos=0,dir=1,sp=1.6,zl=0;const W=()=>Math.max(14,28-r*3);
+  openM('Snowball toss','<p class="hint">Stop the marker inside the green zone. You get 5 throws.</p><div class="bar2">Throw <b id="tr">1</b> of 5 · Hits <b id="th">0</b></div><div class="track"><div class="zone" id="zn"></div><div class="mark" id="mk"></div></div><button class="btn" id="thr">Throw ⛄</button>');
+  const setZ=()=>{zl=8+Math.random()*(84-W());$('#zn').style.left=zl+'%';$('#zn').style.width=W()+'%'};setZ();
+  timers.push(setInterval(()=>{pos+=dir*sp;if(pos>=100||pos<=0)dir*=-1;pos=clamp(pos);$('#mk').style.left=pos+'%'},16));
+  $('#thr').onclick=()=>{
+    if(pos>=zl&&pos<=zl+W())sc++;r++;$('#th').textContent=sc;
+    if(r>=5){cleanup();finish('Snowball toss',sc*10,sc*2,`${sc} of 5 snowballs hit!`);return}
+    $('#tr').textContent=r+1;sp+=.5;setZ();
+  };
+}
+
+/* ---- init ---- */
+if(S){showGame()}else{$('#start').hidden=false}
+</script>
 </body>
 </html>

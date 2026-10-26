@@ -1,21 +1,571 @@
-<!DOCTYPE html>
-<html lang="et">
+
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ayrton — mäng</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; background: #0a0e12; color: #e8f0ff; display: grid; place-items: center; padding: 1.5rem; }
-    a { color: #5eead4; }
-    .box { text-align: center; max-width: 28rem; line-height: 1.6; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FLICKLAB — Aim Trainer</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#777;color:#f4f4f4;font-family:Arial,Helvetica,sans-serif}
+body{user-select:none}
+canvas{display:block;width:100%;height:100%;cursor:none}
+#hud{position:fixed;inset:0;pointer-events:none}
+.top{position:absolute;top:15px;left:16px;right:16px;display:flex;justify-content:space-between;gap:10px;align-items:start}
+.brand{font-size:19px;font-weight:900;letter-spacing:.16em;color:#fff;text-shadow:0 2px 4px #0008}
+.brand span{color:#ff4545}
+.tag{font-size:10px;letter-spacing:.2em;color:#eee;margin-top:4px;text-shadow:0 1px 4px #000}
+.metrics{display:flex;gap:7px}
+.metric{min-width:72px;background:#171717c9;border:1px solid #ffffff45;border-radius:5px;padding:8px 10px;text-align:right}
+.metric small{display:block;color:#c9c9c9;font-size:9px;letter-spacing:.12em}
+.metric strong{font-size:18px;font-variant-numeric:tabular-nums}
+.bottom{position:absolute;bottom:13px;left:16px;right:16px;display:flex;justify-content:space-between;align-items:end;gap:8px}
+.panel{background:#171717d9;border:1px solid #ffffff40;border-radius:5px;padding:9px 12px;font-size:11px;color:#ddd;line-height:1.6}
+.panel b{color:#fff}
+.overlay{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:16px;background:#161616a8;overflow:auto}
+.card{width:min(660px,100%);max-height:95vh;overflow:auto;padding:25px;background:#1c1c1cf5;border:1px solid #ffffff55;border-radius:9px;box-shadow:0 15px 55px #0006}
+.eyebrow{font-size:10px;font-weight:900;letter-spacing:.28em;color:#ff4b4b}
+.card h1{font-size:40px;letter-spacing:-.04em;margin:8px 0}
+.card p{color:#d0d0d0;font-size:13px;line-height:1.6}
+.modes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:15px 0}
+.mode{padding:10px;background:#292929;border:1px solid #555;border-radius:5px;cursor:pointer;color:white;text-align:left}
+.mode.selected{border-color:#ff4545;box-shadow:inset 0 0 0 1px #ff454555}
+.mode b{display:block;font-size:12px;margin-bottom:4px}
+.mode small{color:#bbb;font-size:10px}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.setting{padding:10px;background:#292929;border:1px solid #484848;border-radius:5px}
+.setting label{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:#ddd;margin-bottom:8px}
+.setting output{color:#ff6969;font-weight:700}
+.setting input[type=range]{width:100%;accent-color:#ff4545}
+.setting input[type=color]{width:100%;height:27px;border:0;background:none}
+.setting select{width:100%;background:#171717;color:#fff;border:1px solid #555;padding:6px;border-radius:4px}
+.preview{height:70px;background:#777;border:1px solid #999;border-radius:5px;display:grid;place-items:center;position:relative;margin:12px 0}
+.preview:after{content:"CROSSHAIR PREVIEW";position:absolute;bottom:5px;left:8px;font-size:8px;letter-spacing:.14em;color:#eee}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:15px}
+button{border:0;border-radius:5px;padding:12px 20px;font-weight:900;font-size:11px;letter-spacing:.12em;cursor:pointer;background:#ff4545;color:#fff}
+button.secondary{background:#343434;border:1px solid #666}
+.hidden{display:none!important}
+.results{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
+.result{padding:11px;background:#292929;border:1px solid #484848;border-radius:5px;text-align:center}
+.result small{display:block;color:#bbb;font-size:9px}
+.result strong{font-size:22px}
+.cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none}
+.hint{font-size:10px;color:#aaa!important}
+@media(max-width:560px){
+ .top{top:8px;left:8px;right:8px}
+ .brand{font-size:14px}
+ .tag{font-size:8px}
+ .metric{min-width:50px;padding:6px}
+ .metric strong{font-size:14px}
+ .metrics{gap:3px}
+ .bottom{left:8px;right:8px;bottom:8px}
+ .panel{font-size:9px;padding:7px}
+ .settings{grid-template-columns:1fr 1fr}
+ .card{padding:17px}
+ .card h1{font-size:32px}
+}
+</style>
 </head>
 <body>
-  <div class="box">
-    <h1>Ayrton</h1>
-    <p>Siia tuleb sinu mäng. Asenda see fail või lisa siia oma HTML/CSS/JS.</p>
-    <p><a href="../../index.html">← tagasi dashboardile</a></p>
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+ <div class="top">
+  <div>
+   <div class="brand">FLICK<span>LAB</span></div>
+   <div class="tag">PRECISION TRAINING SYSTEM</div>
   </div>
+  <div class="metrics">
+   <div class="metric"><small>TIME</small><strong id="time">30.0</strong></div>
+   <div class="metric"><small>SCORE</small><strong id="score">0</strong></div>
+   <div class="metric"><small>ACCURACY</small><strong id="acc">100%</strong></div>
+   <div class="metric"><small>BEST</small><strong id="best">0</strong></div>
+  </div>
+ </div>
+ <div class="bottom">
+  <div class="panel">
+   <b>LEFT CLICK</b> Shoot · <b>R</b> Restart · <b>ESC</b> Settings<br>
+   Hit the red targets. Misses reduce accuracy.
+  </div>
+  <div class="panel" style="text-align:right">
+   <b id="modehud">GRIDSHOT</b><br>
+   <span id="streak">STREAK 0</span>
+  </div>
+ </div>
+</div>
+
+<div id="menu" class="overlay">
+ <div class="card">
+  <div class="eyebrow">AIM · TRACK · IMPROVE</div>
+  <h1>FLICK<span style="color:#ff4545">LAB</span></h1>
+  <p>Flat gray training range with simple red targets. Tune your crosshair exactly how you like it.</p>
+
+  <div class="modes">
+   <div class="mode selected" data-mode="grid"><b>GRIDSHOT</b><small>Multiple targets · speed</small></div>
+   <div class="mode" data-mode="micro"><b>MICRO FLICK</b><small>Small targets · precision</small></div>
+   <div class="mode" data-mode="track"><b>TRACKING</b><small>Moving target</small></div>
+  </div>
+
+  <h3 style="font-size:13px;margin:18px 0 8px">CROSSHAIR CUSTOMIZATION</h3>
+  <div class="preview"><div id="previewCross" class="cross"></div></div>
+
+  <div class="settings">
+   <div class="setting">
+    <label>Crosshair style <output id="styleVal">Cross</output></label>
+    <select id="crossStyle">
+     <option value="cross">Cross</option>
+     <option value="dot">Dot</option>
+     <option value="both">Cross + dot</option>
+     <option value="circle">Circle</option>
+    </select>
+   </div>
+   <div class="setting">
+    <label>Color <output id="colorVal">#00FF66</output></label>
+    <input id="crossColor" type="color" value="#00ff66">
+   </div>
+   <div class="setting">
+    <label>Dot size <output id="dotVal">3 px</output></label>
+    <input id="dotSize" type="range" min="0" max="12" value="3">
+   </div>
+   <div class="setting">
+    <label>Bar length <output id="lengthVal">8 px</output></label>
+    <input id="barLength" type="range" min="2" max="30" value="8">
+   </div>
+   <div class="setting">
+    <label>Bar thickness <output id="thickVal">2 px</output></label>
+    <input id="barThickness" type="range" min="1" max="8" value="2">
+   </div>
+   <div class="setting">
+    <label>Center gap <output id="gapVal">5 px</output></label>
+    <input id="barGap" type="range" min="0" max="20" value="5">
+   </div>
+   <div class="setting">
+    <label>Bar angle <output id="angleVal">0°</output></label>
+    <input id="barAngle" type="range" min="0" max="180" value="0">
+   </div>
+   <div class="setting">
+    <label>Outline thickness <output id="outlineVal">1 px</output></label>
+    <input id="outlineSize" type="range" min="0" max="4" value="1">
+   </div>
+   <div class="setting">
+    <label>Opacity <output id="opacityVal">100%</output></label>
+    <input id="crossOpacity" type="range" min="20" max="100" value="100">
+   </div>
+   <div class="setting">
+    <label>Target size <output id="targetVal">22 px</output></label>
+    <input id="targetSize" type="range" min="8" max="45" value="22">
+   </div>
+  </div>
+
+  <div class="settingrow" style="font-size:11px;color:#bbb">
+   Session length &nbsp;
+   <label><input type="radio" name="duration" value="30" checked> 30 sec</label>
+   &nbsp;
+   <label><input type="radio" name="duration" value="60"> 60 sec</label>
+  </div>
+  <div class="actions"><button id="start">START TRAINING</button></div>
+  <p class="hint">Settings apply instantly to the preview and in-game crosshair. Best score is saved in this browser.</p>
+ </div>
+</div>
+
+<div id="summary" class="overlay hidden">
+ <div class="card">
+  <div class="eyebrow">SESSION COMPLETE</div>
+  <h1>GOOD WORK.</h1>
+  <div class="results">
+   <div class="result"><small>SCORE</small><strong id="rs">0</strong></div>
+   <div class="result"><small>ACCURACY</small><strong id="ra">0%</strong></div>
+   <div class="result"><small>HITS</small><strong id="rh">0</strong></div>
+   <div class="result"><small>AVG REACTION</small><strong id="rr">0 ms</strong></div>
+   <div class="result"><small>BEST STREAK</small><strong id="rst">0</strong></div>
+   <div class="result"><small>MISSES</small><strong id="rm">0</strong></div>
+  </div>
+  <div class="actions">
+   <button id="again">PLAY AGAIN</button>
+   <button id="settings" class="secondary">SETTINGS</button>
+  </div>
+ </div>
+</div>
+
+<script>
+(()=>{
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+
+let W=innerWidth,H=innerHeight,dpr=1,mode='grid',duration=30,timeLeft=30;
+let playing=false,targets=[],particles=[],score=0,shots=0,hits=0,misses=0;
+let streak=0,bestStreak=0,reactions=[],lastStamp=0;
+let mouse={x:W/2,y:H/2};
+let best=+(localStorage.getItem('flicklabBest')||0),raf=0;
+
+const cfg={
+ style:'cross',color:'#00ff66',dot:3,length:8,
+ thickness:2,gap:5,angle:0,outline:1,opacity:100,target:22
+};
+
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
+
+function resize(){
+ W=innerWidth;H=innerHeight;
+ dpr=Math.min(devicePixelRatio||1,2);
+ canvas.width=W*dpr;canvas.height=H*dpr;
+ canvas.style.width=W+'px';canvas.style.height=H+'px';
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ draw();
+}
+window.addEventListener('resize',resize);
+
+function drawCross(x,y,scale=1){
+ ctx.save();
+ ctx.translate(x,y);
+ ctx.rotate(cfg.angle*Math.PI/180);
+ ctx.globalAlpha=cfg.opacity/100;
+ ctx.lineCap='butt';
+ const color=cfg.color;
+
+ function line(x1,y1,x2,y2){
+  if(cfg.outline>0){
+   ctx.strokeStyle='#000';
+   ctx.lineWidth=cfg.thickness+cfg.outline*2;
+   ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  }
+  ctx.strokeStyle=color;ctx.lineWidth=cfg.thickness;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+ }
+
+ if(cfg.style==='cross'||cfg.style==='both'){
+  const g=cfg.gap*scale,l=(cfg.gap+cfg.length)*scale;
+  line(-l,0,-g,0);line(g,0,l,0);
+  line(0,-l,0,-g);line(0,g,0,l);
+ }
+
+ if(cfg.style==='dot'||cfg.style==='both'){
+  ctx.beginPath();
+  ctx.arc(0,0,cfg.dot*scale/2,0,Math.PI*2);
+  if(cfg.outline){
+   ctx.fillStyle='#000';
+   ctx.arc(0,0,cfg.dot*scale/2+cfg.outline,0,Math.PI*2);
+   ctx.fill();
+  }
+  ctx.beginPath();
+  ctx.arc(0,0,cfg.dot*scale/2,0,Math.PI*2);
+  ctx.fillStyle=color;ctx.fill();
+ }
+
+ if(cfg.style==='circle'){
+  ctx.beginPath();
+  ctx.arc(0,0,(cfg.length+cfg.gap)*scale,0,Math.PI*2);
+  if(cfg.outline){
+   ctx.strokeStyle='#000';
+   ctx.lineWidth=cfg.thickness+cfg.outline*2;
+   ctx.stroke();
+  }
+  ctx.strokeStyle=color;ctx.lineWidth=cfg.thickness;ctx.stroke();
+ }
+ ctx.restore();
+}
+
+function syncSettings(){
+ const fields=[
+  ['dotSize','dot',' px','dotVal'],
+  ['barLength','length',' px','lengthVal'],
+  ['barThickness','thickness',' px','thickVal'],
+  ['barGap','gap',' px','gapVal'],
+  ['barAngle','angle','°','angleVal'],
+  ['outlineSize','outline',' px','outlineVal'],
+  ['crossOpacity','opacity','%','opacityVal'],
+  ['targetSize','target',' px','targetVal']
+ ];
+
+ for(const [id,key,suffix,out] of fields){
+  cfg[key]=+$(id).value;
+  $(out).textContent=$(id).value+suffix;
+ }
+
+ cfg.style=$('crossStyle').value;
+ cfg.color=$('crossColor').value;
+ $('styleVal').textContent=cfg.style;
+ $('colorVal').textContent=cfg.color.toUpperCase();
+ $('previewCross').innerHTML='';
+ drawPreview();
+ draw();
+}
+
+function drawPreview(){
+ const el=$('previewCross');
+ const can=document.createElement('canvas');
+ can.width=140;can.height=60;
+ can.style.width='140px';can.style.height='60px';
+ el.appendChild(can);
+
+ const c=can.getContext('2d');
+ c.translate(70,27);
+ c.rotate(cfg.angle*Math.PI/180);
+ c.globalAlpha=cfg.opacity/100;
+
+ function ln(a,b,d,e){
+  if(cfg.outline){
+   c.strokeStyle='#000';
+   c.lineWidth=cfg.thickness+cfg.outline*2;
+   c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.stroke();
+  }
+  c.strokeStyle=cfg.color;c.lineWidth=cfg.thickness;
+  c.beginPath();c.moveTo(a,b);c.lineTo(d,e);c.stroke();
+ }
+
+ if(cfg.style==='cross'||cfg.style==='both'){
+  let g=cfg.gap,l=cfg.gap+cfg.length;
+  ln(-l,0,-g,0);ln(g,0,l,0);
+  ln(0,-l,0,-g);ln(0,g,0,l);
+ }
+
+ if(cfg.style==='dot'||cfg.style==='both'){
+  c.beginPath();c.arc(0,0,cfg.dot/2,0,Math.PI*2);
+  c.fillStyle=cfg.color;c.fill();
+ }
+
+ if(cfg.style==='circle'){
+  c.beginPath();c.arc(0,0,cfg.gap+cfg.length,0,Math.PI*2);
+  c.strokeStyle=cfg.color;c.lineWidth=cfg.thickness;c.stroke();
+ }
+}
+
+[
+ 'dotSize','barLength','barThickness','barGap','barAngle',
+ 'outlineSize','crossOpacity','targetSize','crossStyle','crossColor'
+].forEach(id=>$(id).addEventListener('input',syncSettings));
+
+function spawn(){
+ const r=cfg.target;
+ let x,y,n=0;
+
+ do{
+  x=rand(35+r,W-35-r);
+  y=rand(85+r,H-75-r);
+  n++;
+ }while(n<30&&targets.some(t=>Math.hypot(t.x-x,t.y-y)<t.r+r+15));
+
+ targets.push({
+  x,y,r,
+  vx:mode==='track'?rand(-170,170):rand(-25,25),
+  vy:mode==='track'?rand(-120,120):rand(-25,25),
+  born:performance.now(),
+  life:mode==='micro'?1.7:mode==='track'?4:2.8
+ });
+}
+
+function start(){
+ score=shots=hits=misses=streak=bestStreak=0;
+ reactions=[];particles=[];targets=[];
+
+ const sel=document.querySelector('input[name=duration]:checked');
+ duration=sel?+sel.value:30;
+ timeLeft=duration;
+ playing=true;
+ lastStamp=performance.now();
+
+ spawn();
+ if(mode==='grid'){spawn();spawn()}
+
+ $('menu').classList.add('hidden');
+ $('summary').classList.add('hidden');
+ $('modehud').textContent=
+  mode==='grid'?'GRIDSHOT':mode==='micro'?'MICRO FLICK':'TRACKING';
+
+ updateHud();
+ cancelAnimationFrame(raf);
+ raf=requestAnimationFrame(loop);
+}
+
+function updateHud(){
+ $('time').textContent=Math.max(0,timeLeft).toFixed(1);
+ $('score').textContent=score;
+ $('acc').textContent=(shots?Math.round(hits/shots*100):100)+'%';
+ $('best').textContent=best;
+ $('streak').textContent='STREAK '+streak;
+}
+
+function shoot(x,y){
+ if(!playing)return;
+ shots++;
+
+ let i=targets.findIndex(t=>Math.hypot(x-t.x,y-t.y)<=t.r);
+
+ if(i>=0){
+  const t=targets.splice(i,1)[0];
+  const rt=performance.now()-t.born;
+  hits++;streak++;
+  bestStreak=Math.max(streak,bestStreak);
+  reactions.push(rt);
+
+  score+=Math.round(
+   (mode==='micro'?150:100)+
+   Math.max(0,1-t.r/45)*70+
+   Math.max(0,1-rt/1800)*40
+  );
+
+  for(let j=0;j<12;j++){
+   let a=rand(0,6.28),s=rand(30,200);
+   particles.push({
+    x:t.x,y:t.y,vx:Math.cos(a)*s,
+    vy:Math.sin(a)*s,life:.35,max:.35
+   });
+  }
+
+  if(mode!=='track'||targets.length===0)spawn();
+  while(mode==='grid'&&targets.length<3)spawn();
+ }else{
+  misses++;streak=0;
+ }
+ updateHud();
+}
+
+function end(){
+ playing=false;
+ best=Math.max(best,score);
+ localStorage.setItem('flicklabBest',best);
+
+ $('rs').textContent=score;
+ $('ra').textContent=(shots?Math.round(hits/shots*100):0)+'%';
+ $('rh').textContent=hits;
+ $('rr').textContent=(
+  reactions.length?
+  Math.round(reactions.reduce((a,b)=>a+b,0)/reactions.length):0
+ )+' ms';
+ $('rst').textContent=bestStreak;
+ $('rm').textContent=misses;
+ $('summary').classList.remove('hidden');
+}
+
+function loop(now){
+ if(!playing)return;
+
+ const dt=Math.min((now-lastStamp)/1000,.04);
+ lastStamp=now;
+ timeLeft-=dt;
+
+ if(timeLeft<=0){
+  timeLeft=0;
+  updateHud();
+  end();
+  draw();
+  return;
+ }
+
+ for(let i=targets.length-1;i>=0;i--){
+  let t=targets[i];
+
+  if(mode==='track'){
+   t.x+=t.vx*dt;t.y+=t.vy*dt;
+   if(t.x<t.r||t.x>W-t.r)t.vx*=-1;
+   if(t.y<t.r+60||t.y>H-t.r-60)t.vy*=-1;
+  }
+
+  if((mode==='micro'||mode==='grid')&&(now-t.born)/1000>t.life){
+   targets.splice(i,1);
+   misses++;streak=0;
+   spawn();
+  }
+ }
+
+ if(mode==='micro'&&targets.length===0)spawn();
+ if(mode==='grid')while(targets.length<3)spawn();
+
+ for(let i=particles.length-1;i>=0;i--){
+  let p=particles[i];
+  p.x+=p.vx*dt;p.y+=p.vy*dt;
+  p.life-=dt;
+  if(p.life<=0)particles.splice(i,1);
+ }
+
+ updateHud();
+ draw();
+ raf=requestAnimationFrame(loop);
+}
+
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle='#777';
+ ctx.fillRect(0,0,W,H);
+
+ // Subtle concrete texture.
+ for(let i=0;i<1000;i++){
+  let x=(i*7919%104729)/104729*W;
+  let y=(i*3571%65521)/65521*H;
+  ctx.fillStyle=i%2?'#ffffff09':'#00000009';
+  ctx.fillRect(x,y,rand(1,2.5),rand(1,2.5));
+ }
+
+ // Flat gray range.
+ ctx.fillStyle='#55555512';
+ ctx.fillRect(0,0,W,H);
+
+ // Simple red targets.
+ for(const t of targets){
+  ctx.beginPath();
+  ctx.arc(t.x,t.y,t.r+1,0,Math.PI*2);
+  ctx.fillStyle='#8a1111';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(t.x,t.y,t.r,0,Math.PI*2);
+  ctx.fillStyle='#f20d16';
+  ctx.fill();
+ }
+
+ // Hit particles.
+ for(const p of particles){
+  ctx.globalAlpha=Math.max(0,p.life/p.max);
+  ctx.fillStyle='#ff3a40';
+  ctx.beginPath();
+  ctx.arc(p.x,p.y,2.5,0,Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha=1;
+ }
+
+ if(playing)drawCross(mouse.x,mouse.y);
+}
+
+canvas.addEventListener('mousemove',e=>{
+ mouse.x=e.clientX;mouse.y=e.clientY;
+});
+
+canvas.addEventListener('mousedown',e=>{
+ if(e.button===0)shoot(e.clientX,e.clientY);
+});
+
+window.addEventListener('keydown',e=>{
+ if(e.code==='KeyR'&&playing)start();
+
+ if(e.code==='Escape'&&playing){
+  playing=false;
+  $('menu').classList.remove('hidden');
+ }
+});
+
+document.querySelectorAll('.mode').forEach(el=>{
+ el.addEventListener('click',()=>{
+  document.querySelectorAll('.mode').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  mode=el.dataset.mode;
+ });
+});
+
+$('start').addEventListener('click',start);
+$('again').addEventListener('click',start);
+
+$('settings').addEventListener('click',()=>{
+ $('summary').classList.add('hidden');
+ $('menu').classList.remove('hidden');
+});
+
+syncSettings();
+resize();
+$('best').textContent=best;
+})();
+</script>
 </body>
 </html>
