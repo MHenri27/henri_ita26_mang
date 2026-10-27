@@ -71,6 +71,7 @@ function shapeTerrain(cx, cz) {
   scenery.terrain.position.set(cx, 0, cz);
   scenery.terrainCenter = { x: cx, z: cz };
   if (scenery.cascades) placeCascades(cx, cz);
+  if (scenery.trunks) placeForest(cx, cz);
 }
 
 // Sandy shores low down, grass on the slopes, bare rock where it gets steep or high
@@ -106,6 +107,58 @@ function updateTerrain(pos) {
   if (center && Math.hypot(pos.x - center.x, pos.z - center.z) < 60) return;
   const grid = TERRAIN_SIZE / TERRAIN_STEPS;
   shapeTerrain(Math.round(pos.x / grid) * grid, Math.round(pos.z / grid) * grid);
+}
+
+// ---- Forest covering the hills ----
+
+const FOREST_CELL = 9;   // one tree spot per cell
+const FOREST_MAX = 1500;
+
+function makeForest() {
+  scenery.trunks = new THREE.InstancedMesh(geo.trunk, mat.trunk, FOREST_MAX);
+  scenery.crowns = new THREE.InstancedMesh(geo.cone, mat.leaves, FOREST_MAX * 2);
+  world.scene.add(scenery.trunks, scenery.crowns);
+}
+
+// Same random number for the same cell every time, so trees don't jump around
+function cellRandom(i, j, salt = 0) {
+  const v = Math.sin(i * 127.1 + j * 311.7 + salt * 74.7) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function placeForest(cx, cz) {
+  const half = TERRAIN_SIZE / 2 - FOREST_CELL;
+  const color = new THREE.Color();
+  let count = 0;
+
+  for (let gx = Math.ceil((cx - half) / FOREST_CELL); gx < (cx + half) / FOREST_CELL; gx++) {
+    for (let gz = Math.ceil((cz - half) / FOREST_CELL); gz < (cz + half) / FOREST_CELL; gz++) {
+      if (count >= FOREST_MAX || cellRandom(gx, gz) > 0.45) continue;
+      const x = (gx + cellRandom(gx, gz, 1)) * FOREST_CELL;
+      const z = (gz + cellRandom(gx, gz, 2)) * FOREST_CELL;
+      const h = terrainMeshHeight(x, z);
+
+      // No trees in the water, on cliffs, or right under the path
+      if (h < WATER_LEVEL + 1.5) continue;
+      if (Math.abs(terrainMeshHeight(x + 3, z) - h) + Math.abs(terrainMeshHeight(x, z + 3) - h) > 4) continue;
+      if (distanceToPath(x, z) < 10) continue;
+
+      const size = 0.8 + cellRandom(gx, gz, 3) * 0.7;
+      scenery.trunks.setMatrixAt(count, matrixAt(x, h + 2 * size, z, 0, size, 4 * size, size));
+      scenery.crowns.setMatrixAt(count * 2, matrixAt(x, h + 5 * size, z, gx, 2.6 * size, 4.2 * size, 2.6 * size));
+      scenery.crowns.setMatrixAt(count * 2 + 1, matrixAt(x, h + 7.2 * size, z, gz, 1.8 * size, 3.2 * size, 1.8 * size));
+      color.set(COLORS.leaves[Math.floor(cellRandom(gx, gz, 4) * COLORS.leaves.length)]);
+      scenery.crowns.setColorAt(count * 2, color);
+      scenery.crowns.setColorAt(count * 2 + 1, color);
+      count++;
+    }
+  }
+
+  scenery.trunks.count = count;
+  scenery.crowns.count = count * 2;
+  scenery.trunks.instanceMatrix.needsUpdate = true;
+  scenery.crowns.instanceMatrix.needsUpdate = true;
+  if (scenery.crowns.instanceColor) scenery.crowns.instanceColor.needsUpdate = true;
 }
 
 // ---- Lakes filling the low valleys ----
@@ -409,6 +462,7 @@ function updateFireflies(dt, pos) {
 
 function createScenery() {
   makeTerrain();
+  makeForest();
   makeCascades();
   makeLakes();
   makeMountains();
