@@ -122,4 +122,37 @@ const TRAPS = {
       return trapNear(item, p, 1.2) && p.y < this.height(item) - 0.1;
     },
   },
+
+  // A big blade swinging across the path. Slide under it or time it.
+  axe: {
+    length: 4.6,
+    place(seg, along) {
+      addItem(seg, "axe", along, 0).phase = random(0, Math.PI * 2);
+    },
+    make(item) {
+      trapMat.metal ??= standard("#a3a7ad", { metalness: 0.6, roughness: 0.35 });
+      const g = new THREE.Group();
+      for (const x of [-HALF_WIDTH - 0.2, HALF_WIDTH + 0.2]) g.add(part(geo.box, mat.woodDark, 0.4, 6.6, 0.4, x, 3.3, 0));
+      g.add(part(geo.box, mat.woodDark, HALF_WIDTH * 2 + 1, 0.45, 0.5, 0, 6.4, 0));
+      const pivot = new THREE.Group();
+      pivot.position.y = 6.2;
+      pivot.add(part(geo.box, mat.woodDark, 0.12, this.length, 0.12, 0, -this.length / 2, 0));
+      pivot.add(part(geo.box, trapMat.metal, 1.4, 1, 0.08, 0, -this.length, 0));
+      g.add(pivot);
+      item.part = pivot;
+      return g;
+    },
+    angle(item) {
+      return Math.sin(world.time * 2 + item.phase);
+    },
+    animate(item) {
+      item.part.rotation.z = this.angle(item);
+    },
+    hits(item, p) {
+      const a = this.angle(item);
+      const bladeX = -this.length * Math.sin(a);
+      const bladeY = 6.2 - this.length * Math.cos(a);
+      return trapNear(item, p, 0.4) && Math.abs(bladeX - p.x) < 0.7 + PLAYER_HALF_WIDTH && standingIn(p, bladeY - 0.5, bladeY + 0.5);
+    },
+  },
 };
