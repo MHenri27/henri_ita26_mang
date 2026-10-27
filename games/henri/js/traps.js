@@ -194,27 +194,29 @@ const TRAPS = {
     },
   },
 
-  // Water pouring down over one or two lanes, it knocks the runner over
+  // An old stone aqueduct crosses over the path and leaks onto one or two lanes.
+  // The water knocks the runner over.
   waterfall: {
     smash: false,
+    channelY: 7,
     place(seg, along) {
       const free = pick([-1, 0, 1]);
       const wet = [-1, 0, 1].filter((l) => l !== free);
-      for (const lane of Math.random() < 0.5 ? wet : [pick(wet)]) addItem(seg, "waterfall", along, lane);
+      const lanes = Math.random() < 0.5 ? wet : [pick(wet)];
+      lanes.forEach((lane, i) => (addItem(seg, "waterfall", along, lane).main = i === 0));
       coinLine(seg, along - 3, free, 4);
     },
     make(item) {
       const g = new THREE.Group();
+      const top = this.channelY;
+      if (item.main) g.add(this.makeAqueduct(item.lateral));
+
+      // Spout under the channel and the water pouring out of it
+      g.add(part(geo.box, mat.stoneDark, 1.2, 0.6, 1, 0, top - 0.9, 0));
       const fall = new THREE.Mesh(geo.box, mat.water);
-      fall.scale.set(1.7, 34, 0.5);
-      fall.position.y = 3;
+      fall.scale.set(1.5, top - 1.2, 0.5);
+      fall.position.y = (top - 1.2) / 2;
       g.add(fall);
-      // Rock pillar beside the path with an overhang the water pours from
-      const side = item.lateral >= 0 ? 1 : -1;
-      const pillarX = -(side * (HALF_WIDTH + 2.5) - item.lateral);
-      g.add(part(geo.box, mat.stoneDark, 2.6, 44, 2.6, pillarX, -1, 0));
-      g.add(part(geo.box, mat.stoneDark, Math.abs(pillarX) + 1.4, 1.4, 1.8, pillarX / 2, 20.3, 0));
-      g.add(part(geo.box, mat.moss, Math.abs(pillarX) + 1.5, 0.3, 1.9, pillarX / 2, 21.1, 0));
       for (let i = 0; i < 4; i++) {
         const foam = part(geo.box, mat.foam,random(0.4, 0.7), 0.25, random(0.4, 0.7), random(-0.7, 0.7), 0.12, random(-0.5, 0.5));
         foam.rotation.y = random(0, 3);
@@ -225,6 +227,26 @@ const TRAPS = {
       mist.position.y = 0.6;
       g.add(mist);
       return g;
+    },
+    // Channel spanning the path, standing on piers that reach down into the ground
+    makeAqueduct(lateral) {
+      const a = new THREE.Group();
+      a.position.x = lateral; // centered on the path, not on the lane
+      const top = this.channelY;
+      const span = 36;
+      a.add(part(geo.box, mat.block, span, 1.4, 2.2, 0, top, 0));
+      a.add(part(geo.box, mat.moss, span + 0.1, 0.2, 2.3, 0, top + 0.75, 0));
+      const water = new THREE.Mesh(geo.box, mat.water);
+      water.scale.set(span - 0.4, 0.1, 1.4);
+      water.position.y = top + 0.88;
+      a.add(water);
+
+      for (const x of [-18, -11, 11, 18]) {
+        const bottom = -45;
+        a.add(part(geo.box, mat.block, 1.8, top - bottom, 2, x, (top + bottom) / 2, 0));
+        a.add(part(geo.box, mat.stoneDark, 2.3, 0.5, 2.4, x, top - 1, 0));
+      }
+      return a;
     },
     animate(item, seg, dt) {
       if (Math.random() < dt * 6) {
