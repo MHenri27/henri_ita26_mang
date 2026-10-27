@@ -71,6 +71,7 @@ function shapeTerrain(cx, cz) {
   scenery.terrain.position.set(cx, 0, cz);
   scenery.terrainCenter = { x: cx, z: cz };
   if (scenery.cascades) placeCascades(cx, cz);
+  if (scenery.ruins) placeHilltopRuins(cx, cz);
   if (scenery.trunks) placeForest(cx, cz);
   if (scenery.rocks) placeRocks(cx, cz);
 }
@@ -143,6 +144,7 @@ function placeForest(cx, cz) {
       if (h < WATER_LEVEL + 1.5) continue;
       if (Math.abs(terrainMeshHeight(x + 3, z) - h) + Math.abs(terrainMeshHeight(x, z + 3) - h) > 4) continue;
       if (distanceToPath(x, z) < 10) continue;
+      if (scenery.ruins?.children.some((r) => Math.hypot(r.position.x - x, r.position.z - z) < 10)) continue;
 
       const size = 0.8 + cellRandom(gx, gz, 3) * 0.7;
       scenery.trunks.setMatrixAt(count, matrixAt(x, h + 2 * size, z, 0, size, 4 * size, size));
@@ -194,6 +196,59 @@ function placeRocks(cx, cz) {
   }
   scenery.rocks.count = count;
   scenery.rocks.instanceMatrix.needsUpdate = true;
+}
+
+// ---- Old temple ruins sitting on the highest hilltops ----
+
+function makeHilltopRuins() {
+  scenery.ruins = new THREE.Group();
+  world.scene.add(scenery.ruins);
+}
+
+function placeHilltopRuins(cx, cz) {
+  const group = scenery.ruins;
+  group.clear();
+  const cell = 21;
+  const half = TERRAIN_SIZE / 2 - cell;
+  const spots = [];
+
+  // Highest point of each big cell that is well away from the path
+  for (let gx = Math.ceil((cx - half) / cell); gx < (cx + half) / cell; gx++) {
+    for (let gz = Math.ceil((cz - half) / cell); gz < (cz + half) / cell; gz++) {
+      const x = (gx + 0.5) * cell;
+      const z = (gz + 0.5) * cell;
+      const h = terrainMeshHeight(x, z);
+      if (h > -4 && distanceToPath(x, z) > 30) spots.push({ x, z, h, gx, gz });
+    }
+  }
+  spots.sort((a, b) => b.h - a.h);
+
+  const chosen = [];
+  for (const s of spots) {
+    if (chosen.length >= 5) break;
+    if (chosen.some((c) => Math.hypot(c.x - s.x, c.z - s.z) < 70)) continue;
+    chosen.push(s);
+  }
+
+  for (const s of chosen) {
+    const ruin = new THREE.Group();
+    ruin.position.set(s.x, s.h - 0.6, s.z);
+    ruin.rotation.y = cellRandom(s.gx, s.gz, 20) * Math.PI;
+
+    // Stepped base with a few broken columns and a little shrine on top
+    for (let i = 0; i < 3; i++) {
+      ruin.add(part(geo.box, mat.block, 12 - i * 3, 1.2, 12 - i * 3, 0, i * 1.2 + 0.6, 0));
+    }
+    ruin.add(part(geo.box, mat.moss, 12.1, 0.2, 12.1, 0, 1.25, 0));
+    geo.column ??= new THREE.CylinderGeometry(0.9, 1.05, 1, 8);
+    for (const [x, z] of [[-4.5, -4.5], [4.5, -4.5], [-4.5, 4.5], [4.5, 4.5]]) {
+      const tall = 2 + cellRandom(s.gx + x, s.gz + z, 21) * 5;
+      ruin.add(part(geo.column, mat.block, 0.7, tall, 0.7, x, 1.2 + tall / 2, z));
+    }
+    ruin.add(part(geo.box, mat.stoneDark, 3, 2.6, 3, 0, 4.9, 0));
+    ruin.add(part(geo.box, mat.block, 3.6, 0.6, 3.6, 0, 6.5, 0));
+    group.add(ruin);
+  }
 }
 
 // ---- Lakes filling the low valleys ----
@@ -499,6 +554,7 @@ function createScenery() {
   makeTerrain();
   makeForest();
   makeRocks();
+  makeHilltopRuins();
   makeCascades();
   makeLakes();
   makeMountains();
