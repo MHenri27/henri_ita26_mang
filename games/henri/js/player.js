@@ -12,6 +12,7 @@ function createPlayer() {
     pendingTurn: null,
     phase: 0,         // running animation
     land: 0,          // squash timer after landing
+    stumble: 0,       // stagger timer after a hit
   };
 }
 
@@ -57,6 +58,7 @@ function updatePlayerMotion(p, dt, speed) {
     }
   }
   p.land = Math.max(0, p.land - dt);
+  p.stumble = Math.max(0, p.stumble - dt);
 
   p.slide = Math.max(0, p.slide - dt);
   p.phase += dt * speed * 0.75;
@@ -149,9 +151,18 @@ const POSE_ZERO = {
   head: 0,
 };
 
-function targetPose(p) {
+function targetPose(p, mode) {
   const s = Math.sin(p.phase);
   const c = Math.cos(p.phase);
+
+  // Out of hearts: face down on the stones
+  if (mode === "dead") {
+    return {
+      ...POSE_ZERO, lean: 1.45, y: 0.22, z: -0.2,
+      legL: 0.1, legR: -0.2, kneeR: 0.7,
+      armL: -2.9, armR: -2.6, elbowR: -0.5, head: -0.6,
+    };
+  }
 
   // Feet first slide: lying back, one leg bent, a hand trailing on the ground
   if (p.slide > 0) {
@@ -168,6 +179,17 @@ function targetPose(p) {
       ...POSE_ZERO, lean: 0.15,
       legL: -0.9, kneeL: 1.4, legR: 0.4, kneeR: 1.1,
       armL: -2.6, armR: -2.3, elbowL: -0.3, elbowR: -0.4,
+    };
+  }
+
+  // Stagger forward with flailing arms after a hit
+  if (p.stumble > 0) {
+    const flail = Math.sin(world.time * 30) * 0.5;
+    return {
+      ...POSE_ZERO, lean: 0.65, y: 0,
+      legL: s * 0.9, kneeL: 0.6, legR: -s * 0.9, kneeR: 0.6,
+      armL: -2.6 + flail, armR: -2.2 - flail, elbowL: -0.4, elbowR: -0.4,
+      head: -0.5,
     };
   }
 
@@ -201,7 +223,7 @@ function applyPose(rig, target, k) {
   rig.head.rotation.x = pose.head;
 }
 
-function updatePlayerMesh(mesh, p, seg, invulnerable, dt) {
+function updatePlayerMesh(mesh, p, seg, mode, blink, dt) {
   const rig = mesh.userData;
   const pos = pathToWorld(seg, p.along, p.x);
   mesh.position.set(pos.x, p.y, pos.z);
@@ -217,8 +239,9 @@ function updatePlayerMesh(mesh, p, seg, invulnerable, dt) {
   rig.body.rotation.z = -leanAmount;
 
   // Running is fast enough to follow the cycle closely, other poses ease in
-  const k = onGround(p) && p.slide <= 0 ? 0.6 : Math.min(1, dt * 14);
-  applyPose(rig, targetPose(p), k);
+  const running = mode === "run" && onGround(p) && p.slide <= 0 && p.stumble <= 0;
+  const k = running ? 0.6 : Math.min(1, dt * (mode === "dead" ? 8 : 14));
+  applyPose(rig, targetPose(p, mode), k);
 
   // Stretch on the way up, squash when landing
   let squash = 1;
@@ -229,6 +252,6 @@ function updatePlayerMesh(mesh, p, seg, invulnerable, dt) {
   rig.scarfTail.rotation.x = -0.6 + Math.sin(p.phase * 2) * 0.25;
 
   // Blink while invulnerable after a hit
-  mesh.visible = !invulnerable || Math.floor(world.time * 12) % 2 === 0;
+  mesh.visible = !blink || Math.floor(world.time * 12) % 2 === 0;
   return pos;
 }

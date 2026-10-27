@@ -103,6 +103,7 @@ function hurt() {
   if (run.hurt > 0 || run.boost > 0) return;
   run.hearts--;
   run.hurt = HURT_TIME;
+  run.player.stumble = 0.45;
   run.speed = Math.max(START_SPEED, run.speed * 0.85);
   world.shake = reduceMotion ? 0 : 0.4;
   playSound("hurt");
@@ -315,7 +316,8 @@ function loop(now) {
     animateSegment(s, dt);
   }
 
-  const pos = updatePlayerMesh(playerMesh, p, seg, run.hurt > 0 && state === "playing", dt);
+  const mode = state === "over" ? "dead" : "run";
+  const pos = updatePlayerMesh(playerMesh, p, seg, mode, run.hurt > 0 && state === "playing", dt);
   updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading);
   updateParticles(dt);
   renderWorld();
