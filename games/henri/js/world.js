@@ -24,6 +24,7 @@ const COLORS = {
   heart: "#ff4d63",
   trunk: "#4a3626",
   leaves: ["#2e6a3b", "#3b7a3d", "#27573a", "#4a8743", "#356f34"],
+  flowers: ["#f4d35e", "#f28fad", "#f6f1e7", "#e8604c"],
   temple: "#5b4559",
   sun: "#ffe0a8",
 };
@@ -307,6 +308,8 @@ function buildSegment(seg, prev) {
   const tiles = [];
   const footings = [];
   const vines = [];
+  const grass = [];
+  const flowers = [];
   const curbs = [];
   const trunks = [];
   const leaves = [];
@@ -337,12 +340,28 @@ function buildSegment(seg, prev) {
         vines.push({ matrix: matrixAt(v.x, -length / 2 + 0.1, v.z, p.heading, 0.14, length, 0.14), color: pick(COLORS.leaves) });
         vines.push({ matrix: matrixAt(v.x, -length, v.z, random(0, 3), 0.32, 0.32, 0.32), color: pick(COLORS.leaves) });
       }
+
+      // Grass tufts growing on the curbs, some with a flower
+      if (Math.random() < 0.35) {
+        const g = pathToWorld(seg, t + random(-0.8, 0.8), side * (HALF_WIDTH - 0.22));
+        for (let k = 0; k < 3; k++) {
+          grass.push({
+            matrix: matrixAt(g.x + random(-0.15, 0.15), 0.4, g.z + random(-0.15, 0.15), random(0, 3), 0.08, random(0.25, 0.45), 0.08),
+            color: pick(COLORS.leaves),
+          });
+        }
+        if (Math.random() < 0.35) {
+          flowers.push({ matrix: matrixAt(g.x, 0.56, g.z, random(0, 3), 0.13, 0.08, 0.13), color: pick(COLORS.flowers) });
+        }
+      }
     }
   }
   addInstances(group, isCurve ? geo.curveTile : geo.tile, mat.tile, tiles);
   addInstances(group, geo.curb, mat.curb, curbs);
   addInstances(group, geo.box, mat.stoneDark, footings, false);
   addInstances(group, geo.box, mat.leaves, vines, false);
+  addInstances(group, geo.cone, mat.leaves, grass, false);
+  addInstances(group, geo.box, mat.leaves, flowers, false);
 
   // Corner tile with curbs on the two closed sides so the dead end is obvious
   if (seg.corner) {
