@@ -617,7 +617,7 @@ function animateSegment(seg, dt) {
 }
 
 // Camera sits behind the player and swings smoothly around corners
-function updateCamera(dt, pos, heading, boosting) {
+function updateCamera(dt, pos, heading, boosting, showcase) {
   // Widen the view while boosting so it feels faster
   const fov = world.baseFov + (boosting ? 14 : 0);
   if (Math.abs(world.camera.fov - fov) > 0.05) {
@@ -629,15 +629,32 @@ function updateCamera(dt, pos, heading, boosting) {
   diff = Math.atan2(Math.sin(diff), Math.cos(diff));
   world.camHeading += diff * Math.min(1, dt * 7);
 
-  const f = forward(world.camHeading);
+  // Showcase swings the camera around to the front of the runner
+  world.showcase = (world.showcase || 0) + ((showcase ? 1 : 0) - (world.showcase || 0)) * Math.min(1, dt * 3);
+  const m = world.showcase * world.showcase * (3 - 2 * world.showcase);
+  const mix = (a, b) => a + (b - a) * m;
+
+  const narrow = world.camera.aspect < 0.8;
+  const orbit = mix(Math.PI, 0.35 + Math.sin(world.time * 0.4) * 0.2);
+  const dist = mix(7.5, narrow ? 5.2 : 4.4);
+  const o = forward(world.camHeading + orbit);
   const cam = world.camera;
-  cam.position.set(pos.x - f.x * 7.5, pos.y * 0.5 + 4.6, pos.z - f.z * 7.5);
+  cam.position.set(pos.x + o.x * dist, mix(pos.y * 0.5 + 4.6, 1.9), pos.z + o.z * dist);
   if (world.shake > 0) {
     world.shake -= dt;
     cam.position.x += random(-1, 1) * world.shake;
     cam.position.y += random(-1, 1) * world.shake;
   }
-  cam.lookAt(pos.x + f.x * 8, 1.2 + pos.y * 0.3, pos.z + f.z * 8);
+
+  // In the showcase the runner sits beside the panel, or above it on phones
+  const f = forward(world.camHeading);
+  const r = rightOf(world.camHeading);
+  const side = narrow ? 0 : 1.5;
+  cam.lookAt(
+    mix(pos.x + f.x * 8, pos.x + r.x * side),
+    mix(1.2 + pos.y * 0.3, narrow ? -1.1 : 1.1),
+    mix(pos.z + f.z * 8, pos.z + r.z * side)
+  );
 
   // Things that stay put relative to the player
   world.sky.position.copy(cam.position);
