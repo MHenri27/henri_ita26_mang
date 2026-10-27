@@ -1,156 +1,131 @@
 <!DOCTYPE html>
 <html lang="et">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ragnar — mäng</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; background: #0a0e12; color: #e8f0ff; display: grid; place-items: center; padding: 1.5rem; }
-    a { color: #5eead4; }
-    .box { text-align: center; max-width: 28rem; line-height: 1.6; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Ussimäng</title>
+    <style>
+        body {
+            background: #222;
+            color: white;
+            text-align: center;
+            font-family: Arial;
+        }
+
+        canvas {
+            background: black;
+            border: 3px solid lime;
+        }
+    </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Ragnar</h1>
-    <p>Siia tuleb sinu mäng. Asenda see fail või lisa siia oma HTML/CSS/JS.</p>
-    <p><a href="../../index.html">← tagasi dashboardile</a></p>
-  </div>
-</body>
-</html>
 
-import tkinter as tk
-import random
+<h1>Ussimäng</h1>
+<p id="punktid">Punktid: 0</p>
+<canvas id="mang" width="600" height="400"></canvas>
+<br>
+<button onclick="algus()">Alusta uuesti</button>
 
-RUUT = 20
-LAIUS = 600
-KORGUS = 400
+<script>
+const canvas = document.getElementById("mang");
+const ctx = canvas.getContext("2d");
 
-aken = tk.Tk()
-aken.title("Ussimang")
+const RUUT = 20;
+let uss, oun, suund, punktid, mangLabi, taimer;
 
-l = tk.Canvas(
-    aken,
-    width=LAIUS,
-    height=KORGUS,
-    bg="black"
-)
-l.pack()
+function uusOun() {
+    let koht;
+    do {
+        koht = {
+            x: Math.floor(Math.random() * 30) * RUUT,
+            y: Math.floor(Math.random() * 20) * RUUT
+        };
+    } while (uss.some(osa => osa.x === koht.x && osa.y === koht.y));
+    return koht;
+}
 
-uss = [(100, 100), (80, 100), (60, 100)]
-suund = (RUUT, 0)
-punktid = 0
-mang_labi = False
+function algus() {
+    clearTimeout(taimer);
+    uss = [
+        {x: 100, y: 100},
+        {x: 80, y: 100},
+        {x: 60, y: 100}
+    ];
+    suund = {x: RUUT, y: 0};
+    punktid = 0;
+    mangLabi = false;
+    oun = uusOun();
+    samm();
+}
 
-def uus_oun():
-    while True:
-        koht = (
-            random.randrange(0, LAIUS, RUUT),
-            random.randrange(0, KORGUS, RUUT)
-        )
-        if koht not in uss:
-            return koht
+document.addEventListener("keydown", function(event) {
+    if (mangLabi) return;
 
-oun = uus_oun()
+    if (event.key === "ArrowUp" && suund.y !== RUUT)
+        suund = {x: 0, y: -RUUT};
+    else if (event.key === "ArrowDown" && suund.y !== -RUUT)
+        suund = {x: 0, y: RUUT};
+    else if (event.key === "ArrowLeft" && suund.x !== RUUT)
+        suund = {x: -RUUT, y: 0};
+    else if (event.key === "ArrowRight" && suund.x !== -RUUT)
+        suund = {x: RUUT, y: 0};
+});
 
-def klahv(event):
-    global suund
+function samm() {
+    if (mangLabi) return;
 
-    if mang_labi:
-        return
+    let pea = {
+        x: uss[0].x + suund.x,
+        y: uss[0].y + suund.y
+    };
 
-    if event.keysym == "Up" and suund != (0, RUUT):
-        suund = (0, -RUUT)
-    elif event.keysym == "Down" and suund != (0, -RUUT):
-        suund = (0, RUUT)
-    elif event.keysym == "Left" and suund != (RUUT, 0):
-        suund = (-RUUT, 0)
-    elif event.keysym == "Right" and suund != (-RUUT, 0):
-        suund = (RUUT, 0)
-
-def joonista():
-    l.delete("all")
-
-    for i, (x, y) in enumerate(uss):
-        varv = "lime" if i == 0 else "green"
-        l.create_rectangle(
-            x, y, x + RUUT - 2, y + RUUT - 2,
-            fill=varv, outline=varv
-        )
-
-    x, y = oun
-    l.create_oval(
-        x, y, x + RUUT - 2, y + RUUT - 2,
-        fill="red", outline="red"
-    )
-
-    l.create_text(
-        60, 15,
-        text="Punktid: " + str(punktid),
-        fill="white",
-        font=("Arial", 14)
-    )
-
-def samm():
-    global oun, punktid, mang_labi
-
-    if mang_labi:
-        return
-
-    x = uss[0][0] + suund[0]
-    y = uss[0][1] + suund[1]
-    pea = (x, y)
+    let soob = pea.x === oun.x && pea.y === oun.y;
+    let keha = soob ? uss : uss.slice(0, -1);
 
     if (
-        x < 0 or x >= LAIUS
-        or y < 0 or y >= KORGUS
-        or pea in uss
-    ):
-        mang_labi = True
-        l.create_text(
-            LAIUS // 2, KORGUS // 2,
-            text="MANG LABI!",
-            fill="yellow",
-            font=("Arial", 28)
-        )
-        l.create_text(
-            LAIUS // 2, KORGUS // 2 + 40,
-            text="Vajuta F5 uuesti mangimiseks",
-            fill="white",
-            font=("Arial", 12)
-        )
-        return
+        pea.x < 0 || pea.x >= 600 ||
+        pea.y < 0 || pea.y >= 400 ||
+        keha.some(osa => osa.x === pea.x && osa.y === pea.y)
+    ) {
+        mangLabi = true;
+        joonista();
+        ctx.fillStyle = "yellow";
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("MÄNG LÄBI!", 300, 200);
+        return;
+    }
 
-    uss.insert(0, pea)
+    uss.unshift(pea);
 
-    if pea == oun:
-        punktid += 1
-        oun = uus_oun()
-    else:
-        uss.pop()
+    if (soob) {
+        punktid++;
+        oun = uusOun();
+    } else {
+        uss.pop();
+    }
 
-    joonista()
-    aken.after(120, samm)
+    joonista();
+    taimer = setTimeout(samm, 120);
+}
 
-def uuesti(event=None):
-    global uss, suund, punktid, mang_labi, oun
+function joonista() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, 600, 400);
 
-    if not mang_labi:
-        return
+    uss.forEach((osa, i) => {
+        ctx.fillStyle = i === 0 ? "lime" : "green";
+        ctx.fillRect(osa.x, osa.y, RUUT - 2, RUUT - 2);
+    });
 
-    uss = [(100, 100), (80, 100), (60, 100)]
-    suund = (RUUT, 0)
-    punktid = 0
-    mang_labi = False
-    oun = uus_oun()
+    ctx.fillStyle = "red";
+    ctx.fillRect(oun.x, oun.y, RUUT - 2, RUUT - 2);
 
-    joonista()
-    samm()
+    document.getElementById("punktid").textContent =
+        "Punktid: " + punktid;
+}
 
-aken.bind("<Key>", klahv)
-aken.bind("<F5>", uuesti)
+algus();
+</script>
 
-joonista()
-samm()
-aken.mainloop()
+</body>
+</html>
