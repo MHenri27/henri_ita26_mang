@@ -419,6 +419,27 @@ document.addEventListener("visibilitychange", () => {
 
 window.addEventListener("resize", resizeWorld);
 
+// Cheats for testing from the devtools console, e.g. dev.coins(500)
+window.dev = {
+  coins(amount = 1000) {
+    save.wallet += amount;
+    writeSave();
+    updateWallet();
+    if (state === "shop") renderShop();
+    if (state === "wardrobe") renderWardrobe(pickLook);
+    return `Wallet: ${save.wallet} coins`;
+  },
+  hearts(amount = MAX_HEARTS) {
+    run.hearts = amount;
+    return `Hearts: ${run.hearts}`;
+  },
+  reset() {
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  },
+};
+console.log("Temple Dash dev commands: dev.coins(amount), dev.hearts(amount), dev.reset()");
+
 newRun();
 updateMuteIcon();
 showScreen("menu");
