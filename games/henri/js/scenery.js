@@ -164,6 +164,47 @@ function updateBirds(dt, pos) {
   }
 }
 
+// ---- Fireflies drifting around the path ----
+
+function makeFireflies() {
+  const count = 70;
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+  const points = new THREE.Points(geometry, new THREE.PointsMaterial({
+    size: 0.35,
+    map: mat.glowTexture,
+    color: "#e8ff8a",
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  }));
+  points.frustumCulled = false;
+  world.scene.add(points);
+
+  scenery.fireflies = {
+    points,
+    list: Array.from({ length: count }, () => ({ x: random(-30, 30), y: random(-5, 6), z: random(-30, 30), phase: random(0, 6) })),
+  };
+}
+
+function updateFireflies(dt, pos) {
+  // They stay put in the world and wrap around the player
+  const ff = scenery.fireflies;
+  const attr = ff.points.geometry.attributes.position;
+  ff.list.forEach((f, i) => {
+    f.phase += dt;
+    f.x += Math.sin(f.phase * 0.7) * dt;
+    f.y += Math.cos(f.phase * 0.9) * dt * 0.5;
+    if (f.x - pos.x > 30) f.x -= 60;
+    if (f.x - pos.x < -30) f.x += 60;
+    if (f.z - pos.z > 30) f.z -= 60;
+    if (f.z - pos.z < -30) f.z += 60;
+    attr.setXYZ(i, f.x, f.y, f.z);
+  });
+  attr.needsUpdate = true;
+  ff.points.material.opacity = 0.6 + Math.sin(world.time * 3) * 0.3;
+}
+
 // ---- Setup and per-frame update ----
 
 function createScenery() {
@@ -171,6 +212,7 @@ function createScenery() {
   makeMountains();
   makeClouds();
   makeBirds();
+  makeFireflies();
 }
 
 function updateScenery(dt, pos) {
@@ -178,4 +220,5 @@ function updateScenery(dt, pos) {
   updateMountains(pos);
   updateClouds(dt, pos);
   updateBirds(dt, pos);
+  updateFireflies(dt, pos);
 }
