@@ -206,9 +206,14 @@ function updatePlayerMesh(mesh, p, seg, invulnerable, dt) {
   const pos = pathToWorld(seg, p.along, p.x);
   mesh.position.set(pos.x, p.y, pos.z);
 
-  // Face along the path and lean a bit into lane changes
-  const leanAmount = (p.lane * LANE - p.x) * 0.12;
-  mesh.rotation.set(0, pos.heading, 0);
+  // Turn smoothly toward the path direction, so corners swing instead of snap
+  rig.heading ??= pos.heading;
+  const diff = Math.atan2(Math.sin(pos.heading - rig.heading), Math.cos(pos.heading - rig.heading));
+  rig.heading += diff * Math.min(1, dt * 14);
+  mesh.rotation.set(0, rig.heading, 0);
+
+  // Lean into lane changes and corners
+  const leanAmount = (p.lane * LANE - p.x) * 0.12 - diff * 0.5;
   rig.body.rotation.z = -leanAmount;
 
   // Running is fast enough to follow the cycle closely, other poses ease in
