@@ -155,4 +155,42 @@ const TRAPS = {
       return trapNear(item, p, 0.4) && Math.abs(bladeX - p.x) < 0.7 + PLAYER_HALF_WIDTH && standingIn(p, bladeY - 0.5, bladeY + 0.5);
     },
   },
+
+  // A boulder that starts rolling down the lane once the player gets close
+  boulder: {
+    place(seg, along) {
+      const end = seg.length - (seg.corner ? 12 : 4);
+      addItem(seg, "boulder", Math.min(along + 20, end), pick([-1, 0, 1]));
+    },
+    make(item) {
+      trapMat.rock ??= new THREE.IcosahedronGeometry(1.1, 1);
+      const g = new THREE.Group();
+      const rock = new THREE.Group();
+      rock.position.y = 1.1;
+      rock.add(part(trapMat.rock, mat.block, 1, 1, 1));
+      rock.add(part(geo.box, mat.moss, 0.9, 0.3, 0.9, 0.3, 0.75, 0.3));
+      g.add(rock);
+      item.part = rock;
+      return g;
+    },
+    animate(item, seg, dt) {
+      const p = run.player;
+      if (!item.rolling && state === "playing" && p.seg === seg.index && item.along - p.along < 55) item.rolling = true;
+      if (!item.rolling || state !== "playing") return;
+      item.along -= 9 * dt;
+      item.part.rotation.x -= (9 * dt) / 1.1;
+      placeItemMesh(seg, item);
+      if (Math.random() < dt * 20) {
+        const m = item.mesh.position;
+        burst(m.x, 0.1, m.z, "#cbb393", 2, 1.5);
+      }
+      if (item.along < -3) {
+        item.done = true;
+        item.mesh.visible = false;
+      }
+    },
+    hits(item, p) {
+      return trapNear(item, p, 2) && Math.abs(item.lateral - p.x) < 1.1 + PLAYER_HALF_WIDTH && standingIn(p, 0, 2.2);
+    },
+  },
 };
