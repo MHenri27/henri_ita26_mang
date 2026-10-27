@@ -534,8 +534,23 @@ function addLandmark(seg, group, prev) {
   landmark.position.set(p.x, 0, p.z);
   landmark.rotation.y = p.heading + side * Math.PI / 2;
 
-  ruinedPillar(landmark, ground);
+  if (Math.random() < 0.55) ruinedPillar(landmark, ground);
+  else stoneHead(landmark, ground);
   group.add(landmark);
+}
+
+// Giant carved head on a plinth, staring at the runner
+function stoneHead(g, ground) {
+  g.add(part(geo.box, mat.stoneDark, 3.2, -0.5 - ground, 3.2, 0, (ground - 0.5) / 2, 0));
+  g.add(part(geo.box, mat.block, 3.2, 3.6, 3, 0, 1.3, 0));
+  g.add(part(geo.box, mat.moss, 3.3, 0.35, 3.1, 0, 3.2, 0));
+  g.add(part(geo.box, mat.blockFace, 2.6, 0.3, 0.1, 0, 2.4, 1.52)); // brow
+  for (const x of [-0.7, 0.7]) {
+    g.add(part(geo.box, mat.blockFace, 0.6, 0.45, 0.1, x, 1.9, 1.52)); // eyes
+    g.add(part(geo.box, mat.block, 0.35, 1, 0.6, x * 2.5, 1.4, 0)); // ears
+  }
+  g.add(part(geo.box, mat.block, 0.7, 1, 0.5, 0, 1.2, 1.6)); // nose
+  g.add(part(geo.box, mat.blockFace, 1.6, 0.3, 0.1, 0, 0.35, 1.52)); // mouth
 }
 
 // Broken temple column rising out of the jungle
