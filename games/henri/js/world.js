@@ -306,6 +306,7 @@ function buildSegment(seg, prev) {
   const group = new THREE.Group();
   const tiles = [];
   const footings = [];
+  const vines = [];
   const curbs = [];
   const trunks = [];
   const leaves = [];
@@ -328,11 +329,20 @@ function buildSegment(seg, prev) {
     for (const side of [-1, 1]) {
       const c = pathToWorld(seg, t, side * (HALF_WIDTH - 0.22));
       curbs.push({ matrix: matrixAt(c.x, 0.14, c.z, p.heading, 1, 1, step / 1.94) });
+
+      // Vines hanging over the edge
+      if (Math.random() < 0.3) {
+        const v = pathToWorld(seg, t + random(-0.6, 0.6), side * (HALF_WIDTH + 0.08));
+        const length = random(1.2, 4.5);
+        vines.push({ matrix: matrixAt(v.x, -length / 2 + 0.1, v.z, p.heading, 0.14, length, 0.14), color: pick(COLORS.leaves) });
+        vines.push({ matrix: matrixAt(v.x, -length, v.z, random(0, 3), 0.32, 0.32, 0.32), color: pick(COLORS.leaves) });
+      }
     }
   }
   addInstances(group, isCurve ? geo.curveTile : geo.tile, mat.tile, tiles);
   addInstances(group, geo.curb, mat.curb, curbs);
   addInstances(group, geo.box, mat.stoneDark, footings, false);
+  addInstances(group, geo.box, mat.leaves, vines, false);
 
   // Corner tile with curbs on the two closed sides so the dead end is obvious
   if (seg.corner) {
