@@ -496,8 +496,8 @@ function addTempleGate(seg, group) {
     return m;
   };
 
-  // Stepped temple body behind the gate, reaching down into the jungle
-  piece(stone, 18, 26, 12, 0, -9, -6.2);
+  // Stepped temple body behind the gate, reaching all the way down to the ground
+  piece(stone, 18, 50, 12, 0, -21, -6.2);
   piece(stone, 13, 4, 9, 0, 6, -6.5);
   piece(stone, 8, 3, 6, 0, 9.5, -6.5);
   piece(mat.moss, 18.2, 0.3, 12.2, 0, 4.05, -6.2);
