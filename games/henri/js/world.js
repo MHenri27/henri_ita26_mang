@@ -534,9 +534,33 @@ function addLandmark(seg, group, prev) {
   landmark.position.set(p.x, 0, p.z);
   landmark.rotation.y = p.heading + side * Math.PI / 2;
 
-  if (Math.random() < 0.55) ruinedPillar(landmark, ground);
-  else stoneHead(landmark, ground);
+  const roll = Math.random();
+  if (roll < 0.4) ruinedPillar(landmark, ground);
+  else if (roll < 0.7) stoneHead(landmark, ground);
+  else waterfallRock(landmark, ground);
   group.add(landmark);
+}
+
+// Tall rock spire with a waterfall pouring down the side facing the path
+function waterfallRock(g, ground) {
+  geo.spire ??= new THREE.CylinderGeometry(2.2, 3.6, 1, 6);
+  const top = random(8, 15);
+  g.add(part(geo.spire, mat.stoneDark, 1, top - ground, 1, 0, (top + ground) / 2, 0));
+  g.add(part(geo.spire, mat.moss, 1.02, 0.6, 1.02, 0, top - 0.2, 0));
+  mat.bush ??= standard(COLORS.leaves[1]);
+  for (let i = 0; i < 3; i++) {
+    g.add(part(geo.cone, mat.bush, 1.2, 1.8, 1.2, random(-1.2, 1.2), top + 0.6, random(-1.2, 1.2)));
+  }
+
+  const fall = new THREE.Mesh(geo.box, mat.water);
+  fall.scale.set(1.4, top - 1 - ground, 0.3);
+  fall.position.set(0, (top - 1 + ground) / 2, 2.55);
+  g.add(fall);
+
+  const mist = new THREE.Sprite(mat.waterMist);
+  mist.scale.setScalar(9);
+  mist.position.set(0, -6, 3);
+  g.add(mist);
 }
 
 // Giant carved head on a plinth, staring at the runner
