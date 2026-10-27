@@ -47,7 +47,10 @@
       </div>
       <div class="actions">
         <button class="btn" id="start-btn">Start run</button>
-        <button class="btn secondary" id="shop-btn">Upgrades</button>
+        <div class="actions-row">
+          <button class="btn secondary" id="shop-btn">Upgrades</button>
+          <button class="btn secondary" id="wardrobe-btn">Wardrobe</button>
+        </div>
       </div>
       <ul class="keys">
         <li><span><kbd>&larr;</kbd><kbd>&rarr;</kbd></span> Switch lane, turn at corners</li>
@@ -68,6 +71,18 @@
       </div>
       <ul class="shop-list" id="shop-list"></ul>
       <button class="btn secondary" id="shop-back">Done</button>
+    </div>
+  </section>
+
+  <section class="screen dock" id="wardrobe" hidden>
+    <div class="panel wardrobe">
+      <div class="shop-head">
+        <h2>Wardrobe</h2>
+        <span class="wallet"><i class="ph-fill ph-coin"></i><span class="wallet-amount">0</span></span>
+      </div>
+      <div class="tabs" id="look-tabs" role="tablist"></div>
+      <ul class="look-grid" id="look-grid"></ul>
+      <button class="btn secondary" id="wardrobe-back">Done</button>
     </div>
   </section>
 

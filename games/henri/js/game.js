@@ -6,7 +6,7 @@ createWorld(canvas);
 let playerMesh = null;
 dressPlayer();
 
-let state = "menu"; // menu, shop, playing, paused, over
+let state = "menu"; // menu, shop, wardrobe, playing, paused, over
 let shopReturn = "menu";
 let path = null;
 let run = null;
@@ -75,6 +75,27 @@ function closeShop() {
   state = shopReturn;
   showScreen(shopReturn);
   if (shopReturn === "over") renderOver(run, scoreOf(run), false, reviveCost());
+}
+
+function openWardrobe() {
+  state = "wardrobe";
+  renderWardrobe(pickLook);
+  showScreen("wardrobe");
+}
+
+// Clicking an item wears it, buying it first if needed
+function pickLook(group, item) {
+  if (!ownsLook(group, item.id)) {
+    if (!buyLook(group, item.id)) {
+      playSound("hurt");
+      return;
+    }
+    playSound("bigCoin");
+    updateWallet();
+  }
+  wearLook(group, item.id);
+  dressPlayer();
+  renderWardrobe(pickLook);
 }
 
 function endRun() {
@@ -332,7 +353,7 @@ function loop(now) {
     animateSegment(s, dt);
   }
 
-  const idle = state === "menu" || (state === "shop" && shopReturn === "menu");
+  const idle = state === "menu" || state === "wardrobe" || (state === "shop" && shopReturn === "menu");
   const mode = state === "over" ? "dead" : idle ? "idle" : "run";
   const pos = updatePlayerMesh(playerMesh, p, seg, mode, run.hurt > 0 && state === "playing", dt);
   updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading, state === "playing" && run.boost > 0);
@@ -373,6 +394,11 @@ $("revive-btn").addEventListener("click", revive);
 $("shop-btn").addEventListener("click", () => openShop("menu"));
 $("over-shop-btn").addEventListener("click", () => openShop("over"));
 $("shop-back").addEventListener("click", closeShop);
+$("wardrobe-btn").addEventListener("click", openWardrobe);
+$("wardrobe-back").addEventListener("click", () => {
+  state = "menu";
+  showScreen("menu");
+});
 $("quit-btn").addEventListener("click", () => {
   newRun();
   state = "menu";

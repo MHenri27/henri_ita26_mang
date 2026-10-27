@@ -423,6 +423,144 @@ kbd {
   background: var(--accent);
 }
 
+/* ---- Wardrobe ---- */
+
+.actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+/* Docked to the side so the runner stays visible */
+.screen.dock {
+  justify-items: start;
+  padding: 24px;
+  background: linear-gradient(90deg, rgb(8 12 9 / 0.45), transparent 60%);
+}
+
+.panel.wardrobe {
+  width: min(420px, 100%);
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 8px 0 16px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(238 240 232 / 0.08);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tab.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.tab:focus-visible,
+.look-card:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.look-grid {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.look-card {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 14px 8px 12px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgb(238 240 232 / 0.06);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.look-card:hover {
+  background: rgb(238 240 232 / 0.11);
+}
+
+.look-card:active {
+  transform: scale(0.97);
+}
+
+.look-card.worn {
+  border-color: var(--accent);
+}
+
+.look-card.pricey .look-status {
+  opacity: 0.5;
+}
+
+.swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--a);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.15);
+}
+
+.swatch.split {
+  background: linear-gradient(180deg, var(--a) 50%, var(--b) 50%);
+}
+
+.look-icon {
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.look-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.look-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.look-card .ph-coin {
+  color: var(--accent);
+}
+
+.look-card.worn .look-status {
+  color: var(--accent);
+}
+
 /* ---- Game over ---- */
 
 .results {
@@ -476,6 +614,22 @@ kbd {
   .turn-hint,
   .hearts.lost {
     animation: none;
+  }
+}
+
+/* On phones the wardrobe becomes a sheet at the bottom */
+@media (max-width: 700px) {
+  .screen.dock {
+    align-items: end;
+    justify-items: stretch;
+    padding: 0;
+    background: none;
+  }
+
+  .panel.wardrobe {
+    width: 100%;
+    max-height: 56dvh;
+    border-radius: var(--radius) var(--radius) 0 0;
   }
 }
 
