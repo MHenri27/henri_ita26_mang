@@ -50,12 +50,44 @@ function updateTerrain(pos) {
   shapeTerrain(Math.round(pos.x / grid) * grid, Math.round(pos.z / grid) * grid);
 }
 
+// ---- Mountains on the horizon ----
+
+function makeMountains() {
+  scenery.mountains = new THREE.Group();
+  const rock = new THREE.MeshBasicMaterial({ color: "#7a5560", fog: false });
+  const lit = new THREE.MeshBasicMaterial({ color: "#c99a86", fog: false });
+
+  for (let i = 0; i < 16; i++) {
+    const angle = (i / 16) * Math.PI * 2 + random(-0.1, 0.1);
+    const dist = random(400, 460);
+    const height = random(50, 110);
+    const radius = random(45, 80);
+
+    const peak = new THREE.Mesh(new THREE.ConeGeometry(radius, height, 5), rock);
+    peak.position.set(Math.sin(angle) * dist, height / 2 - 25, Math.cos(angle) * dist);
+    peak.rotation.y = random(0, Math.PI);
+
+    // Lighter tip catching the evening sun, a bit wider so it sits on top
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(radius * 0.31, height * 0.28, 5), lit);
+    tip.position.y = height * 0.36;
+    peak.add(tip);
+    scenery.mountains.add(peak);
+  }
+  world.scene.add(scenery.mountains);
+}
+
+function updateMountains(pos) {
+  scenery.mountains.position.set(pos.x, 0, pos.z);
+}
+
 // ---- Setup and per-frame update ----
 
 function createScenery() {
   makeTerrain();
+  makeMountains();
 }
 
 function updateScenery(dt, pos) {
   updateTerrain(pos);
+  updateMountains(pos);
 }
