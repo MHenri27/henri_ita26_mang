@@ -314,7 +314,7 @@ function buildSegment(seg, prev) {
 
   const isCurve = seg.type === "curve";
   const step = isCurve ? 1.2 : 2;
-  const start = !prev ? -10 : prev.corner ? HALF_WIDTH : 0;
+  const start = !prev ? GATE_ALONG : prev.corner ? HALF_WIDTH : 0;
   const end = seg.corner ? seg.length - HALF_WIDTH : seg.length;
 
   // Stone tiles and the low curbs on both sides
@@ -374,6 +374,8 @@ function buildSegment(seg, prev) {
     addTorch(seg, group, pathToWorld(seg, seg.length + HALF_WIDTH - 0.3, closedSide * (HALF_WIDTH - 0.3)), 1.4);
   }
 
+  if (!prev) addTempleGate(seg, group);
+
   // Stone pillars holding the path up
   for (let t = 6; t < seg.length - 2; t += 18) {
     if (inGap(seg, t)) continue;
@@ -428,6 +430,45 @@ function buildSegment(seg, prev) {
 
   seg.group = group;
   world.scene.add(group);
+}
+
+// The temple the run starts from, the path comes out of its doorway
+const GATE_ALONG = -24;
+
+function addTempleGate(seg, group) {
+  const p = pointOnSegment(seg, GATE_ALONG);
+  const temple = new THREE.Group();
+  temple.position.set(p.x, 0, p.z);
+  temple.rotation.y = p.heading;
+
+  const stone = mat.block;
+  const piece = (material, w, h, d, x, y, z) => {
+    const m = part(geo.box, material, w, h, d, x, y, z);
+    temple.add(m);
+    return m;
+  };
+
+  // Stepped temple body behind the gate, reaching down into the jungle
+  piece(stone, 18, 26, 12, 0, -9, -6.2);
+  piece(stone, 13, 4, 9, 0, 6, -6.5);
+  piece(stone, 8, 3, 6, 0, 9.5, -6.5);
+  piece(mat.moss, 18.2, 0.3, 12.2, 0, 4.05, -6.2);
+
+  // Gate pillars, lintel and the dark doorway
+  for (const side of [-1, 1]) piece(mat.stoneDark, 1.3, 6.4, 1.4, side * (HALF_WIDTH + 0.4), 3.2, 0);
+  piece(mat.stoneDark, HALF_WIDTH * 2 + 2.6, 1.3, 1.8, 0, 6.9, 0);
+  piece(mat.blockFace, HALF_WIDTH * 2 - 0.2, 6.3, 0.1, 0, 3.15, -0.25);
+
+  // Carved face over the doorway
+  piece(mat.block, 2.4, 1.6, 0.5, 0, 8.3, 0.3);
+  piece(mat.blockFace, 0.5, 0.35, 0.1, -0.55, 8.5, 0.56);
+  piece(mat.blockFace, 0.5, 0.35, 0.1, 0.55, 8.5, 0.56);
+  piece(mat.blockFace, 1.2, 0.2, 0.1, 0, 7.95, 0.56);
+
+  group.add(temple);
+  for (const side of [-1, 1]) {
+    addTorch(seg, group, pathToWorld(seg, GATE_ALONG + 1.6, side * (HALF_WIDTH - 0.3)), 1.4);
+  }
 }
 
 function addTorch(seg, group, pos, scale = 1) {
