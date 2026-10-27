@@ -109,19 +109,25 @@
   <section class="screen" id="over" hidden>
     <div class="panel">
       <h2 id="over-title">Out of hearts</h2>
+      <div class="final">
+        <span class="final-score" id="final-score">0</span>
+        <span class="badge" id="new-best" hidden><i class="ph-fill ph-trophy"></i>New best</span>
+      </div>
       <dl class="results">
-        <div><dt>Score</dt><dd id="final-score">0</dd></div>
-        <div><dt>Coins</dt><dd id="final-coins">0</dd></div>
+        <div><dt>Distance</dt><dd id="final-distance">0 m</dd></div>
+        <div><dt>Coins</dt><dd><i class="ph-fill ph-coin"></i><span id="final-coins">0</span></dd></div>
         <div><dt>Best</dt><dd id="final-best">0</dd></div>
       </dl>
-      <p class="new-best" id="new-best" hidden>New best run</p>
       <div class="actions">
         <button class="btn revive" id="revive-btn">
-          <span>Revive</span>
+          <span class="cost"><i class="ph-fill ph-heart"></i>Revive</span>
           <span class="cost"><i class="ph-fill ph-coin"></i><span id="revive-cost">100</span></span>
         </button>
-        <button class="btn" id="again-btn">Run again</button>
-        <button class="btn secondary" id="over-shop-btn">Upgrades</button>
+        <button class="btn big" id="again-btn"><i class="ph-fill ph-arrow-clockwise"></i>Run again</button>
+        <div class="actions-row">
+          <button class="btn secondary" id="over-shop-btn"><i class="ph-fill ph-lightning"></i>Upgrades</button>
+          <button class="btn secondary" id="over-menu-btn"><i class="ph-fill ph-house"></i>Menu</button>
+        </div>
       </div>
       <p class="hint">You have <span class="wallet-amount">0</span> coins.</p>
     </div>

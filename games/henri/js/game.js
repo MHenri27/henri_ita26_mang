@@ -499,11 +499,14 @@ $("wardrobe-back").addEventListener("click", () => {
   state = "menu";
   showScreen("menu");
 });
-$("quit-btn").addEventListener("click", () => {
+function goToMenu() {
   newRun();
   state = "menu";
   showScreen("menu");
-});
+}
+
+$("quit-btn").addEventListener("click", goToMenu);
+$("over-menu-btn").addEventListener("click", goToMenu);
 
 // Pause automatically when the tab is hidden
 document.addEventListener("visibilitychange", () => {

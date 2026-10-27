@@ -657,11 +657,41 @@ kbd {
 
 /* ---- Game over ---- */
 
+.final {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 4px 0 18px;
+}
+
+.final-score {
+  font-size: clamp(3rem, 12vw, 4.2rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
 .results {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin: 8px 0 20px;
+  margin: 0 0 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
   font-variant-numeric: tabular-nums;
 }
 
@@ -671,16 +701,13 @@ kbd {
 }
 
 .results dd {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   margin: 4px 0 0;
-  font-size: 1.8rem;
+  font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-}
-
-.new-best {
-  margin-top: -8px;
-  color: var(--accent);
-  font-weight: 700;
 }
 
 /* ---- Motion ---- */

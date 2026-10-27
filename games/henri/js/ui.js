@@ -21,7 +21,7 @@ const ui = {
 
 function showScreen(name) {
   for (const [key, el] of Object.entries(ui.screens)) el.hidden = key !== name;
-  ui.hud.hidden = ["menu", "shop", "wardrobe", "intro"].includes(name);
+  ui.hud.hidden = ["menu", "shop", "wardrobe", "intro", "over"].includes(name);
   if (name !== "playing") {
     ui.turnHint.hidden = true;
     $("danger").hidden = true;
@@ -134,6 +134,7 @@ function renderShop() {
 function renderOver(run, score, isBest, reviveCost, caught) {
   $("over-title").textContent = caught ? "The monkeys got you" : "Out of hearts";
   $("final-score").textContent = score;
+  $("final-distance").textContent = `${Math.floor(run.distance)} m`;
   $("final-coins").textContent = run.coins;
   $("final-best").textContent = save.best;
   $("new-best").hidden = !isBest;
