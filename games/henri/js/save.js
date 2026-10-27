@@ -89,6 +89,9 @@ function wearLook(group, id) {
 // The full set of items the runner has on right now
 function currentLook() {
   const look = {};
-  for (const group in LOOKS) look[group] = lookItem(group, save.wearing[group]);
+  for (const group in LOOKS) {
+    const id = save.wearing[group];
+    look[group] = ownsLook(group, id) ? lookItem(group, id) : LOOKS[group].items[0];
+  }
   return look;
 }
