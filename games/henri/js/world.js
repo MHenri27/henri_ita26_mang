@@ -267,7 +267,8 @@ function resizeWorld() {
   world.renderer.setSize(w, h, false);
   world.camera.aspect = w / h;
   // Narrow screens get a wider view so the lanes still fit
-  world.camera.fov = w / h < 0.8 ? 78 : 62;
+  world.baseFov = w / h < 0.8 ? 78 : 62;
+  world.camera.fov = world.baseFov;
   world.camera.updateProjectionMatrix();
 }
 
@@ -615,7 +616,14 @@ function animateSegment(seg, dt) {
 }
 
 // Camera sits behind the player and swings smoothly around corners
-function updateCamera(dt, pos, heading) {
+function updateCamera(dt, pos, heading, boosting) {
+  // Widen the view while boosting so it feels faster
+  const fov = world.baseFov + (boosting ? 14 : 0);
+  if (Math.abs(world.camera.fov - fov) > 0.05) {
+    world.camera.fov += (fov - world.camera.fov) * Math.min(1, dt * 4);
+    world.camera.updateProjectionMatrix();
+  }
+
   let diff = heading - world.camHeading;
   diff = Math.atan2(Math.sin(diff), Math.cos(diff));
   world.camHeading += diff * Math.min(1, dt * 7);

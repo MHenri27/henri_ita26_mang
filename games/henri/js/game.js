@@ -320,7 +320,7 @@ function loop(now) {
   const idle = state === "menu" || (state === "shop" && shopReturn === "menu");
   const mode = state === "over" ? "dead" : idle ? "idle" : "run";
   const pos = updatePlayerMesh(playerMesh, p, seg, mode, run.hurt > 0 && state === "playing", dt);
-  updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading);
+  updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading, state === "playing" && run.boost > 0);
   updateParticles(dt);
   renderWorld();
 
