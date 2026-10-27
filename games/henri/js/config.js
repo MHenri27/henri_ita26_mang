@@ -66,3 +66,61 @@ const UPGRADES = {
 const BASE_HEARTS = 3;
 const BASE_BOOST_TIME = 3;
 const REVIVE_COST = 100;    // doubles every revive in the same run
+
+// Wardrobe items. The first item in each group is free and worn by default.
+const LOOKS = {
+  hat: {
+    name: "Hats",
+    icon: "ph-cowboy-hat",
+    items: [
+      { id: "fedora", name: "Explorer hat", cost: 0 },
+      { id: "cap", name: "Jungle cap", cost: 100 },
+      { id: "bandana", name: "Bandana", cost: 80 },
+      { id: "safari", name: "Safari helmet", cost: 200 },
+      { id: "crown", name: "Golden crown", cost: 900 },
+      { id: "none", name: "No hat", cost: 0 },
+    ],
+  },
+  outfit: {
+    name: "Outfits",
+    icon: "ph-t-shirt",
+    items: [
+      { id: "explorer", name: "Explorer", cost: 0, shirt: "#e9e1cc", pants: "#5e4b35", boots: "#3a2a1e" },
+      { id: "ranger", name: "Ranger", cost: 150, shirt: "#5f7d4a", pants: "#3e4a32", boots: "#2b2a22" },
+      { id: "desert", name: "Desert", cost: 150, shirt: "#d9b77e", pants: "#a8835a", boots: "#5a4030" },
+      { id: "midnight", name: "Midnight", cost: 300, shirt: "#2e3550", pants: "#1d2133", boots: "#15171d" },
+      { id: "royal", name: "Royal", cost: 600, shirt: "#7a2e3a", pants: "#2a2440", boots: "#c79a3a" },
+    ],
+  },
+  scarf: {
+    name: "Scarves",
+    icon: "ph-swatches",
+    items: [
+      { id: "amber", name: "Amber", cost: 0, color: "#f2a541" },
+      { id: "crimson", name: "Crimson", cost: 60, color: "#d8433c" },
+      { id: "teal", name: "Teal", cost: 60, color: "#2bb8a4" },
+      { id: "violet", name: "Violet", cost: 120, color: "#8a5cd6" },
+      { id: "snow", name: "Snow", cost: 120, color: "#f1f1ea" },
+    ],
+  },
+  gear: {
+    name: "Gear",
+    icon: "ph-backpack",
+    items: [
+      { id: "backpack", name: "Backpack", cost: 0 },
+      { id: "satchel", name: "Satchel", cost: 120 },
+      { id: "cape", name: "Cape", cost: 350 },
+      { id: "none", name: "Nothing", cost: 0 },
+    ],
+  },
+  skin: {
+    name: "Skin",
+    icon: "ph-hand-palm",
+    items: [
+      { id: "tan", name: "Tan", cost: 0, color: "#d8a07a" },
+      { id: "light", name: "Light", cost: 0, color: "#f0c8a8" },
+      { id: "brown", name: "Brown", cost: 0, color: "#a86b45" },
+      { id: "dark", name: "Dark", cost: 0, color: "#6b4430" },
+    ],
+  },
+};
