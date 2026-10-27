@@ -548,6 +548,57 @@ function updateFireflies(dt, pos) {
   ff.points.material.opacity = 0.6 + Math.sin(world.time * 3) * 0.3;
 }
 
+// ---- Butterflies fluttering around the path ----
+
+function makeButterflies() {
+  scenery.butterflies = [];
+  // Wing outline, hinged at the body
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(0.22, 0.2);
+  shape.lineTo(0.32, 0.08);
+  shape.lineTo(0.24, -0.16);
+  shape.lineTo(0.08, -0.12);
+  shape.closePath();
+  const wingGeo = new THREE.ShapeGeometry(shape);
+  wingGeo.rotateX(-Math.PI / 2);
+
+  for (let i = 0; i < 16; i++) {
+    const color = pick(["#f4d35e", "#f28fad", "#7fd3f0", "#f6f1e7", "#ff9a3c"]);
+    const material = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
+    const fly = new THREE.Group();
+    const wings = [1, -1].map((side) => {
+      const wing = new THREE.Mesh(wingGeo, material);
+      wing.scale.x = side;
+      fly.add(wing);
+      return wing;
+    });
+    fly.userData = { wings, x: random(-25, 25), y: random(0.4, 3), z: random(-25, 25), phase: random(0, 6), speed: random(1, 2) };
+    scenery.butterflies.push(fly);
+    world.scene.add(fly);
+  }
+}
+
+function updateButterflies(dt, pos) {
+  for (const fly of scenery.butterflies) {
+    const d = fly.userData;
+    d.phase += dt * d.speed;
+    // Wander in loose loops and stay around the player
+    d.x += Math.sin(d.phase * 0.8) * dt * 2;
+    d.z += Math.cos(d.phase * 0.6) * dt * 2;
+    if (d.x - pos.x > 25) d.x -= 50;
+    if (d.x - pos.x < -25) d.x += 50;
+    if (d.z - pos.z > 25) d.z -= 50;
+    if (d.z - pos.z < -25) d.z += 50;
+
+    fly.position.set(d.x, d.y + Math.sin(d.phase * 3) * 0.3, d.z);
+    fly.rotation.y = d.phase * 0.8;
+    const flap = Math.sin(world.time * 22 + d.phase) * 1.1;
+    d.wings[0].rotation.z = flap;
+    d.wings[1].rotation.z = -flap;
+  }
+}
+
 // ---- Setup and per-frame update ----
 
 function createScenery() {
@@ -561,6 +612,7 @@ function createScenery() {
   makeClouds();
   makeBirds();
   makeFireflies();
+  makeButterflies();
 }
 
 function updateScenery(dt, pos) {
@@ -570,4 +622,5 @@ function updateScenery(dt, pos) {
   updateClouds(dt, pos);
   updateBirds(dt, pos);
   updateFireflies(dt, pos);
+  updateButterflies(dt, pos);
 }
