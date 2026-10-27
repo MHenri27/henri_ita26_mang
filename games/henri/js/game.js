@@ -270,7 +270,7 @@ function checkPickup(item, dz, dt) {
 
 function collect(item) {
   item.done = true;
-  item.mesh.visible = false;
+  item.pop = POP_TIME;
   const m = item.mesh.position;
 
   switch (item.kind) {

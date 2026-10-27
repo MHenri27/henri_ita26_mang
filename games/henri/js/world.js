@@ -29,6 +29,8 @@ const COLORS = {
 };
 
 // Shared geometry and materials, made once
+const POP_TIME = 0.25;  // how long a picked up item takes to vanish
+
 const geo = {};
 const mat = {};
 
@@ -581,7 +583,18 @@ function animateSegment(seg, dt) {
   }
 
   for (const item of seg.items) {
-    if (!item.mesh || item.done) continue;
+    if (!item.mesh) continue;
+
+    // Picked up items float up, swell and vanish
+    if (item.pop > 0) {
+      item.baseScale ??= item.mesh.scale.x;
+      item.pop -= dt;
+      item.mesh.position.y += dt * 5;
+      item.mesh.scale.setScalar(item.baseScale * (1 + (POP_TIME - item.pop) * 3) * Math.max(0, item.pop / POP_TIME));
+      if (item.pop <= 0) item.mesh.visible = false;
+      continue;
+    }
+    if (item.done) continue;
 
     if (item.spin) {
       item.spin.rotation.y += dt * 3;
