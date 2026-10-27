@@ -67,16 +67,15 @@ function updatePlayerMotion(p, dt, speed) {
 
 // ---- Model ----
 
-function makePlayerMesh() {
+function makePlayerMesh(look) {
   const c = {
-    shirt: standard("#e9e1cc"),
-    pants: standard("#5e4b35"),
-    skin: standard("#d8a07a"),
-    hat: standard("#9a7444"),
+    shirt: standard(look.outfit.shirt),
+    pants: standard(look.outfit.pants),
+    skin: standard(look.skin.color),
+    boots: standard(look.outfit.boots),
+    scarf: standard(look.scarf.color),
     hatBand: standard("#4a3524"),
-    boots: standard("#3a2a1e"),
-    scarf: standard("#f2a541"),
-    pack: standard("#7a5a36"),
+    leather: standard("#7a5a36"),
   };
 
   const root = new THREE.Group();
@@ -120,8 +119,9 @@ function makePlayerMesh() {
   });
 
   body.add(box(c.shirt, 0.62, 0.68, 0.36, 0, 1.18, 0));
-  body.add(box(c.pack, 0.46, 0.5, 0.22, 0, 1.22, -0.28));
+  body.add(box(c.hatBand, 0.64, 0.08, 0.38, 0, 0.88, 0)); // belt
   body.add(box(c.scarf, 0.66, 0.12, 0.4, 0, 1.5, 0));
+  const cape = addGear(look.gear.id, body, c, box);
   const scarfTail = box(c.scarf, 0.14, 0.34, 0.08, 0.18, 1.36, -0.24);
   body.add(scarfTail);
 
@@ -136,18 +136,75 @@ function makePlayerMesh() {
     head.add(box(c.hatBand, 0.1, 0.025, 0.02, x, 0.3, 0.19));
   }
   head.add(box(dark, 0.12, 0.025, 0.02, 0, 0.12, 0.19));
-  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.05, 12), c.hat);
-  brim.position.y = 0.4;
-  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.24, 12), c.hat);
-  crown.position.y = 0.53;
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.265, 0.265, 0.07, 12), c.hatBand);
-  band.position.y = 0.45;
-  brim.castShadow = crown.castShadow = true;
-  head.add(brim, crown, band);
+  addHat(look.hat.id, head, c, box);
   body.add(head);
 
-  root.userData = { body, legs, arms, head, scarfTail, pose: { ...POSE_ZERO } };
+  root.userData = { body, legs, arms, head, scarfTail, cape, pose: { ...POSE_ZERO } };
   return root;
+}
+
+function cylinder(material, rTop, rBottom, h, y, segments = 12) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBottom, h, segments), material);
+  m.position.y = y;
+  m.castShadow = true;
+  return m;
+}
+
+// Hats sit on the head group, the head box top is at y 0.38
+function addHat(id, head, c, box) {
+  if (id === "fedora") {
+    const felt = standard("#9a7444");
+    head.add(cylinder(felt, 0.42, 0.42, 0.05, 0.4), cylinder(felt, 0.22, 0.26, 0.24, 0.53), cylinder(c.hatBand, 0.265, 0.265, 0.07, 0.45));
+  } else if (id === "cap") {
+    const green = standard("#4f6b3a");
+    head.add(box(green, 0.42, 0.14, 0.42, 0, 0.43, 0), box(green, 0.36, 0.03, 0.22, 0, 0.38, 0.27));
+  } else if (id === "bandana") {
+    const red = standard("#c2412f");
+    head.add(box(red, 0.41, 0.13, 0.41, 0, 0.33, 0), box(red, 0.1, 0.1, 0.08, 0, 0.32, -0.23));
+    head.add(box(red, 0.06, 0.2, 0.03, -0.04, 0.2, -0.25), box(red, 0.06, 0.16, 0.03, 0.05, 0.22, -0.25));
+  } else if (id === "safari") {
+    const khaki = standard("#d9cfae");
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), khaki);
+    dome.position.y = 0.38;
+    dome.castShadow = true;
+    head.add(dome, cylinder(khaki, 0.36, 0.36, 0.04, 0.39), cylinder(c.hatBand, 0.272, 0.272, 0.06, 0.42));
+  } else if (id === "crown") {
+    const gold = standard("#f2c14e", { metalness: 0.7, roughness: 0.3, emissive: "#6a4a00", emissiveIntensity: 0.4 });
+    const ruby = standard("#d8303f", { emissive: "#5a0a10" });
+    head.add(cylinder(gold, 0.22, 0.2, 0.14, 0.45, 8));
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2;
+      const spike = new THREE.Mesh(geo.cone, gold);
+      spike.scale.set(0.06, 0.14, 0.06);
+      spike.position.set(Math.sin(a) * 0.19, 0.58, Math.cos(a) * 0.19);
+      head.add(spike);
+    }
+    head.add(box(ruby, 0.07, 0.07, 0.03, 0, 0.45, 0.22));
+  } else {
+    head.add(box(standard("#3b2a1e"), 0.4, 0.08, 0.4, 0, 0.41, 0)); // hair
+  }
+}
+
+// Things worn on the back. Returns the cape group so it can flutter.
+function addGear(id, body, c, box) {
+  if (id === "backpack") {
+    body.add(box(c.leather, 0.46, 0.5, 0.22, 0, 1.22, -0.28));
+    const roll = cylinder(standard("#5f7d4a"), 0.09, 0.09, 0.5, 0, 8);
+    roll.rotation.z = Math.PI / 2;
+    roll.position.set(0, 1.52, -0.3);
+    body.add(roll);
+  } else if (id === "satchel") {
+    const strap = box(c.leather, 0.07, 0.8, 0.39, 0, 1.18, 0);
+    strap.rotation.z = 0.7;
+    body.add(strap, box(c.leather, 0.32, 0.28, 0.14, 0.3, 0.86, 0.12));
+  } else if (id === "cape") {
+    const cape = new THREE.Group();
+    cape.position.set(0, 1.5, -0.2);
+    cape.add(box(c.scarf, 0.6, 0.95, 0.04, 0, -0.47, 0));
+    body.add(cape);
+    return cape;
+  }
+  return null;
 }
 
 // Every pose sets these numbers, and the model blends toward them
@@ -270,6 +327,10 @@ function updatePlayerMesh(mesh, p, seg, mode, blink, dt) {
   const wide = 1 + (1 - squash) * 0.6;
   mesh.scale.set(wide, squash, wide);
   rig.scarfTail.rotation.x = -0.6 + Math.sin(p.phase * 2) * 0.25;
+  if (rig.cape) {
+    const flutter = mode === "run" ? 0.55 + Math.sin(world.time * 14) * 0.1 : 0.06 + Math.sin(world.time * 2) * 0.03;
+    rig.cape.rotation.x += (flutter - rig.cape.rotation.x) * Math.min(1, dt * 8);
+  }
 
   // Blink while invulnerable after a hit
   mesh.visible = !blink || Math.floor(world.time * 12) % 2 === 0;

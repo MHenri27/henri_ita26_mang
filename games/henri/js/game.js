@@ -3,14 +3,23 @@ const canvas = document.getElementById("game");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 createWorld(canvas);
-const playerMesh = makePlayerMesh();
-world.scene.add(playerMesh);
+let playerMesh = null;
+dressPlayer();
 
 let state = "menu"; // menu, shop, playing, paused, over
 let shopReturn = "menu";
 let path = null;
 let run = null;
 let lastTime = 0;
+
+// Rebuilds the runner model with the current wardrobe look
+function dressPlayer() {
+  const heading = playerMesh?.userData.heading;
+  if (playerMesh) world.scene.remove(playerMesh);
+  playerMesh = makePlayerMesh(currentLook());
+  playerMesh.userData.heading = heading;
+  world.scene.add(playerMesh);
+}
 
 function newRun() {
   if (path) path.segments.forEach(removeSegment);
