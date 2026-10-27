@@ -145,8 +145,14 @@ function targetPose(p) {
   const s = Math.sin(p.phase);
   const c = Math.cos(p.phase);
 
+  // Feet first slide: lying back, one leg bent, a hand trailing on the ground
   if (p.slide > 0) {
-    return { ...POSE_ZERO, lean: -1.15, y: 0.32, z: -0.3, legL: -1.2, legR: -1.2, armL: -2.4, armR: -2.4 };
+    return {
+      ...POSE_ZERO, lean: -1.25, y: 0.14, z: 0.8,
+      legL: -0.05, legR: -0.6, kneeR: 1.3,
+      armL: 1.1, elbowL: -0.2, armR: -1.5, elbowR: -0.7,
+      head: 0.95,
+    };
   }
 
   if (!onGround(p)) {

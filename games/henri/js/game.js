@@ -180,6 +180,12 @@ function update(dt) {
   updatePlayerMotion(p, dt, speed);
   checkItems(seg, dt);
 
+  // Dust kicked up while sliding
+  if (p.slide > 0 && onGround(p) && Math.random() < 0.7) {
+    const feet = pathToWorld(seg, p.along + 0.6, p.x);
+    burst(feet.x, 0.1, feet.z, "#cbb393", 2, 1.6);
+  }
+
   // Build the path ahead and throw away what is behind
   extendPath(path, seg.startS + p.along + VIEW_AHEAD);
   if (path.segments[p.seg - 2]) removeSegment(path.segments[p.seg - 2]);
