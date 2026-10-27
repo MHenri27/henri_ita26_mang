@@ -1,17 +1,43 @@
 // Landscape around the path. Everything here follows the player, so it never runs out.
 const scenery = {};
 
-// ---- Rolling jungle hills far below the path ----
+// ---- Hills and valleys. The ground stays well below the path, hills rise away from it ----
 
 const TERRAIN_SIZE = 420;
 const TERRAIN_STEPS = 60;
 
+// Shape of the land before the path cuts through it
+function naturalHeight(x, z) {
+  const hills = Math.sin(x * 0.012) * Math.cos(z * 0.01) * 14 + Math.sin((x + z) * 0.021 + 2) * 6;
+  const bumps = Math.sin(x * 0.05 + Math.cos(z * 0.04)) * 2.5 + Math.sin(z * 0.07 - x * 0.03) * 1.5;
+  return -14 + hills + bumps;
+}
+
+// Distance to the nearest bit of path. The unbuilt path ahead counts as close too.
+function distanceToPath(x, z) {
+  let best = Infinity;
+  for (const p of scenery.nearPath || []) {
+    const d = (p.x - x) ** 2 + (p.z - z) ** 2;
+    if (d < best) best = d;
+  }
+  best = Math.sqrt(best);
+  const end = scenery.pathEnd;
+  if (end) best = Math.min(best, Math.max(0, Math.hypot(end.x - x, end.z - z) - 60));
+  return best;
+}
+
 function terrainHeight(x, z) {
-  return -22
-    + Math.sin(x * 0.021) * 4
-    + Math.sin(z * 0.017 + 1.3) * 5
-    + Math.sin((x + z) * 0.043) * 2.5
-    + Math.sin((x - z) * 0.08) * 1.2;
+  const limit = -9 + Math.max(0, distanceToPath(x, z) - 12) * 0.9;
+  return Math.min(naturalHeight(x, z), limit);
+}
+
+// Called whenever the path grows, so the hills make room for it
+function terrainFollowPath(path) {
+  scenery.path = path;
+  const last = path.segments[path.segments.length - 1];
+  scenery.pathEnd = pointOnSegment(last, last.length);
+  const c = scenery.terrainCenter || { x: 0, z: 0 };
+  if (scenery.terrain) shapeTerrain(c.x, c.z);
 }
 
 function makeTerrain() {
@@ -24,6 +50,10 @@ function makeTerrain() {
 
 // Re-shapes the hills around a new center, so they look fixed in the world
 function shapeTerrain(cx, cz) {
+  // Only path points around the terrain matter
+  const reach = TERRAIN_SIZE * 0.75;
+  scenery.nearPath = (scenery.path?.samples || []).filter((p) => Math.hypot(p.x - cx, p.z - cz) < reach);
+
   const pos = scenery.terrain.geometry.attributes.position;
   const col = scenery.terrain.geometry.attributes.color;
   const low = new THREE.Color("#183022");
@@ -33,7 +63,7 @@ function shapeTerrain(cx, cz) {
   for (let i = 0; i < pos.count; i++) {
     const h = terrainHeight(pos.getX(i) + cx, pos.getZ(i) + cz);
     pos.setY(i, h);
-    c.copy(low).lerp(high, clamp((h + 30) / 14, 0, 1));
+    c.copy(low).lerp(high, clamp((h + 30) / 30, 0, 1));
     col.setXYZ(i, c.r, c.g, c.b);
   }
   pos.needsUpdate = true;

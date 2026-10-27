@@ -64,6 +64,7 @@ function createPath() {
     segments: [],
     totalLength: 0,
     netHeading: 0, // keeps the path from looping back on itself
+    samples: [],   // points along the middle of the path, the terrain keeps clear of these
   };
 }
 
@@ -126,6 +127,10 @@ function addSegment(path) {
   placeItems(seg);
   path.segments.push(seg);
   path.totalLength += seg.length;
+  for (let t = 0; t <= seg.length; t += 4) path.samples.push(pointOnSegment(seg, t));
+
+  // Let the hills make room before the segment's trees are placed on them
+  terrainFollowPath(path);
   buildSegment(seg, last);
 }
 

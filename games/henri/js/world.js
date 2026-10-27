@@ -193,14 +193,16 @@ function makeSky() {
   world.scene.add(world.sky);
 }
 
-// Mist layer between the path and the jungle hills below
+// Mist hanging in the valleys, hilltops poke out above it
+const MIST_LEVEL = -15;
+
 function makeGround() {
   world.mist = new THREE.Mesh(
     new THREE.PlaneGeometry(900, 900),
-    new THREE.MeshBasicMaterial({ color: COLORS.mist, transparent: true, opacity: 0.45, depthWrite: false })
+    new THREE.MeshBasicMaterial({ color: COLORS.mist, transparent: true, opacity: 0.3, depthWrite: false })
   );
   world.mist.rotation.x = -Math.PI / 2;
-  world.mist.position.y = -7;
+  world.mist.position.y = MIST_LEVEL;
 
   world.scene.add(world.mist);
 }
@@ -444,9 +446,10 @@ function buildSegment(seg, prev) {
       if (isCurve && side === -seg.bend) maxDist = Math.min(maxDist, seg.radius - 4);
       const dist = random(HALF_WIDTH + 4.5, maxDist);
       const p = pathToWorld(seg, t, side * dist);
-      // Most treetops stay below the path, a few tall ones reach above it
-      const top = Math.random() < 0.2 ? random(2, 8) : random(-8, 1);
-      const ground = terrainHeight(p.x, p.z) - 1;
+      // Most treetops stay below the path, a few tall ones reach above it.
+      // Trunks start a bit under the ground in case the hills shift later.
+      const ground = terrainHeight(p.x, p.z) - 4;
+      const top = Math.max(ground + 9, Math.random() < 0.2 ? random(2, 8) : random(-8, 1));
       const size = random(2.2, 3.6);
 
       // Trunk grows from the hills below up to the treetop
@@ -842,7 +845,7 @@ function updateCamera(dt, pos, heading, boosting, showcase) {
   // Things that stay put relative to the player
   world.sky.position.copy(cam.position);
   world.temples.position.set(pos.x, 0, pos.z);
-  world.mist.position.set(pos.x, -7, pos.z);
+  world.mist.position.set(pos.x, MIST_LEVEL, pos.z);
   world.sun.position.set(pos.x - 30, 45, pos.z + 25);
   world.sun.target.position.set(pos.x, 0, pos.z);
 }
