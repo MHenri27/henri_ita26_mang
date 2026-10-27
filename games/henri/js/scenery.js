@@ -5,7 +5,7 @@ const scenery = {};
 
 const TERRAIN_SIZE = 420;
 const TERRAIN_STEPS = 60;
-const WATER_LEVEL = -24;
+const WATER_LEVEL = -21;
 
 // Shape of the land before the path cuts through it
 function naturalHeight(x, z) {
@@ -100,6 +100,26 @@ function updateTerrain(pos) {
   if (center && Math.hypot(pos.x - center.x, pos.z - center.z) < 60) return;
   const grid = TERRAIN_SIZE / TERRAIN_STEPS;
   shapeTerrain(Math.round(pos.x / grid) * grid, Math.round(pos.z / grid) * grid);
+}
+
+// ---- Lakes filling the low valleys ----
+
+function makeLakes() {
+  const material = new THREE.MeshStandardMaterial({
+    color: "#3d7c86",
+    roughness: 0.15,
+    metalness: 0.2,
+    transparent: true,
+    opacity: 0.88,
+  });
+  scenery.lakes = new THREE.Mesh(new THREE.PlaneGeometry(TERRAIN_SIZE * 1.6, TERRAIN_SIZE * 1.6), material);
+  scenery.lakes.rotation.x = -Math.PI / 2;
+  world.scene.add(scenery.lakes);
+}
+
+function updateLakes(pos) {
+  // Gentle bob so the water surface feels alive
+  scenery.lakes.position.set(pos.x, WATER_LEVEL + Math.sin(world.time * 0.8) * 0.08, pos.z);
 }
 
 // ---- Mountains on the horizon ----
@@ -261,6 +281,7 @@ function updateFireflies(dt, pos) {
 
 function createScenery() {
   makeTerrain();
+  makeLakes();
   makeMountains();
   makeClouds();
   makeBirds();
@@ -269,6 +290,7 @@ function createScenery() {
 
 function updateScenery(dt, pos) {
   updateTerrain(pos);
+  updateLakes(pos);
   updateMountains(pos);
   updateClouds(dt, pos);
   updateBirds(dt, pos);

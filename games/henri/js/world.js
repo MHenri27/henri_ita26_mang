@@ -47,7 +47,7 @@ function createWorld(canvas) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(COLORS.haze);
-  scene.fog = new THREE.Fog(COLORS.haze, 40, 125);
+  scene.fog = new THREE.Fog(COLORS.haze, 50, 170);
 
   const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 700);
 
