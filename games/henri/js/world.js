@@ -305,6 +305,7 @@ function inGap(seg, along) {
 function buildSegment(seg, prev) {
   const group = new THREE.Group();
   const tiles = [];
+  const footings = [];
   const curbs = [];
   const trunks = [];
   const leaves = [];
@@ -321,6 +322,8 @@ function buildSegment(seg, prev) {
     const p = pointOnSegment(seg, t);
     const shade = pick(COLORS.stone);
     tiles.push({ matrix: matrixAt(p.x, -0.5, p.z, p.heading), color: shade });
+    // Narrower dark stone under the tiles gives the walkway some thickness
+    footings.push({ matrix: matrixAt(p.x, -1.6, p.z, p.heading, HALF_WIDTH * 2 - 0.8, 1.2, step) });
 
     for (const side of [-1, 1]) {
       const c = pathToWorld(seg, t, side * (HALF_WIDTH - 0.22));
@@ -329,6 +332,7 @@ function buildSegment(seg, prev) {
   }
   addInstances(group, isCurve ? geo.curveTile : geo.tile, mat.tile, tiles);
   addInstances(group, geo.curb, mat.curb, curbs);
+  addInstances(group, geo.box, mat.stoneDark, footings, false);
 
   // Corner tile with curbs on the two closed sides so the dead end is obvious
   if (seg.corner) {
@@ -337,7 +341,11 @@ function buildSegment(seg, prev) {
     tile.position.set(c.x, -0.5, c.z);
     tile.rotation.y = c.heading;
     tile.receiveShadow = true;
-    group.add(tile);
+    const footing = new THREE.Mesh(geo.box, mat.stoneDark);
+    footing.position.set(c.x, -1.6, c.z);
+    footing.rotation.y = c.heading;
+    footing.scale.set(HALF_WIDTH * 2 - 0.8, 1.2, HALF_WIDTH * 2 - 0.8);
+    group.add(tile, footing);
 
     const closedSide = seg.corner === "left" ? 1 : -1;
     const wallA = new THREE.Mesh(geo.box, mat.curb);
