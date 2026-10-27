@@ -417,9 +417,9 @@ function collect(item) {
   }
 }
 
-// The camera turns around to face the runner in the wardrobe and the intro
+// The camera turns around to face the runner on the menu, in the wardrobe and the intro
 function cameraShowcase() {
-  if (state === "wardrobe") return "wardrobe";
+  if (state === "wardrobe" || state === "menu") return "wardrobe";
   if (state === "intro" && run.intro < INTRO_GO) return "intro";
   return null;
 }

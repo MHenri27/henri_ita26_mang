@@ -39,19 +39,25 @@
     <span>Turn</span>
   </div>
 
-  <section class="screen" id="menu">
-    <div class="panel">
+  <section class="screen dock" id="menu">
+    <div class="panel side">
       <h1>Temple Dash</h1>
-      <p>Run the old temple path. Take the corners, dodge the traps and collect coins to buy upgrades.</p>
-      <div class="stats-row">
-        <span class="wallet"><i class="ph-fill ph-coin"></i><span class="wallet-amount">0</span></span>
-        <span class="best">Best <strong id="menu-best">0</strong></span>
-      </div>
+      <p>Run the old temple path. Take the corners, dodge the traps and outrun the monkeys.</p>
+      <dl class="stat-pair">
+        <div>
+          <dt>Best run</dt>
+          <dd id="menu-best">0</dd>
+        </div>
+        <div>
+          <dt>Coins</dt>
+          <dd><i class="ph-fill ph-coin"></i><span class="wallet-amount">0</span></dd>
+        </div>
+      </dl>
       <div class="actions">
-        <button class="btn" id="start-btn">Start run</button>
+        <button class="btn big" id="start-btn"><i class="ph-fill ph-play"></i>Start run</button>
         <div class="actions-row">
-          <button class="btn secondary" id="shop-btn">Upgrades</button>
-          <button class="btn secondary" id="wardrobe-btn">Wardrobe</button>
+          <button class="btn secondary" id="shop-btn"><i class="ph-fill ph-lightning"></i>Upgrades</button>
+          <button class="btn secondary" id="wardrobe-btn"><i class="ph-fill ph-t-shirt"></i>Wardrobe</button>
         </div>
       </div>
       <ul class="keys">
@@ -60,7 +66,7 @@
         <li><span><kbd>&darr;</kbd></span> Slide</li>
         <li><span><kbd>P</kbd><kbd>M</kbd></span> Pause, sound</li>
       </ul>
-      <p class="hint">On touch: swipe left, right, up or down.</p>
+      <p class="hint touch-only">Swipe left, right, up or down to move. Tap to jump.</p>
       <a class="back" href="../../index.html">Back to dashboard</a>
     </div>
   </section>
@@ -77,7 +83,7 @@
   </section>
 
   <section class="screen dock" id="wardrobe" hidden>
-    <div class="panel wardrobe">
+    <div class="panel side">
       <div class="shop-head">
         <h2>Wardrobe</h2>
         <span class="wallet"><i class="ph-fill ph-coin"></i><span class="wallet-amount">0</span></span>

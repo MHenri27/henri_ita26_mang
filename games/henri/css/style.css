@@ -253,20 +253,32 @@ p {
   line-height: 1.5;
 }
 
-.stats-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  font-size: 1.1rem;
+/* Best run and coins side by side on the menu */
+.stat-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 0 0 24px;
+  font-variant-numeric: tabular-nums;
 }
 
-.best {
+.stat-pair div + div {
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
+}
+
+.stat-pair dt {
+  font-size: 0.85rem;
   color: var(--ink-soft);
 }
 
-.best strong {
-  color: var(--ink);
+.stat-pair dd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .actions {
@@ -290,6 +302,15 @@ p {
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.btn i {
+  font-size: 1.15em;
+}
+
+.btn.big {
+  padding: 17px 20px;
+  font-size: 1.2rem;
 }
 
 .btn:hover:not(:disabled) {
@@ -371,6 +392,21 @@ kbd {
 .hint {
   margin: 16px 0 0;
   font-size: 0.85rem;
+}
+
+/* Keyboard keys on computers, swipe hint on touch screens */
+.touch-only {
+  display: none;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .keys {
+    display: none;
+  }
+
+  .touch-only {
+    display: block;
+  }
 }
 
 .back {
@@ -462,7 +498,7 @@ kbd {
   background: linear-gradient(90deg, rgb(8 12 9 / 0.45), transparent 60%);
 }
 
-.panel.wardrobe {
+.panel.side {
   width: min(420px, 100%);
 }
 
@@ -642,7 +678,7 @@ kbd {
   }
 }
 
-/* On phones the wardrobe becomes a sheet at the bottom */
+/* On phones the side panels become a sheet at the bottom */
 @media (max-width: 700px) {
   .screen.dock {
     align-items: end;
@@ -651,9 +687,9 @@ kbd {
     background: none;
   }
 
-  .panel.wardrobe {
+  .panel.side {
     width: 100%;
-    max-height: 56dvh;
+    max-height: 60dvh;
     border-radius: var(--radius) var(--radius) 0 0;
   }
 }

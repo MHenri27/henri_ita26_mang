@@ -797,9 +797,14 @@ function updateCamera(dt, pos, heading, boosting, showcase) {
   // Keep the last showcase shot while swinging back, so it does not jump
   if (showcase) world.shot = showcase;
   const narrow = world.camera.aspect < 0.8;
-  const shot = world.shot === "intro"
+  const target = world.shot === "intro"
     ? { orbit: 0.3, dist: narrow ? 8 : 6.5, height: 2.6, lookY: 1, side: 0 }
     : { orbit: 0.35 + Math.sin(world.time * 0.4) * 0.2, dist: narrow ? 5.2 : 4.4, height: 1.9, lookY: narrow ? -1.1 : 1.1, side: narrow ? 0 : 1.5 };
+
+  // Ease between shots, like going from the menu straight into the intro
+  world.shotNow ??= { ...target };
+  const shot = world.shotNow;
+  for (const key in target) shot[key] += (target[key] - shot[key]) * Math.min(1, dt * 3);
 
   const orbit = mix(Math.PI, shot.orbit);
   const dist = mix(7.5, shot.dist);
@@ -812,7 +817,7 @@ function updateCamera(dt, pos, heading, boosting, showcase) {
     cam.position.y += random(-1, 1) * world.shake;
   }
 
-  // In the wardrobe the runner sits beside the panel, or above it on phones
+  // On the side panels the runner sits next to the panel, or above it on phones
   const f = forward(world.camHeading);
   const r = rightOf(world.camHeading);
   cam.lookAt(
