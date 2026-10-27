@@ -11,6 +11,7 @@ function createPlayer() {
     slide: 0,         // time left in the slide
     pendingTurn: null,
     phase: 0,         // running animation
+    land: 0,          // squash timer after landing
   };
 }
 
@@ -44,15 +45,22 @@ function updatePlayerMotion(p, dt, speed) {
   const step = LANE_SWITCH_SPEED * dt;
   p.x = Math.abs(diff) < step ? target : p.x + Math.sign(diff) * step;
 
-  // Gravity
+  // Gravity, returns true on the frame the player lands
+  let landed = false;
   if (!onGround(p)) {
     p.vy -= GRAVITY * dt;
     p.y = Math.max(0, p.y + p.vy * dt);
-    if (p.y === 0) p.vy = 0;
+    if (p.y === 0) {
+      p.vy = 0;
+      p.land = 0.15;
+      landed = true;
+    }
   }
+  p.land = Math.max(0, p.land - dt);
 
   p.slide = Math.max(0, p.slide - dt);
   p.phase += dt * speed * 0.75;
+  return landed;
 }
 
 // ---- Model ----
@@ -206,6 +214,13 @@ function updatePlayerMesh(mesh, p, seg, invulnerable, dt) {
   // Running is fast enough to follow the cycle closely, other poses ease in
   const k = onGround(p) && p.slide <= 0 ? 0.6 : Math.min(1, dt * 14);
   applyPose(rig, targetPose(p), k);
+
+  // Stretch on the way up, squash when landing
+  let squash = 1;
+  if (!onGround(p)) squash = 1 + clamp(p.vy / JUMP_SPEED, 0, 1) * 0.12;
+  if (p.land > 0) squash = 1 - p.land * 1.2;
+  const wide = 1 + (1 - squash) * 0.6;
+  mesh.scale.set(wide, squash, wide);
   rig.scarfTail.rotation.x = -0.6 + Math.sin(p.phase * 2) * 0.25;
 
   // Blink while invulnerable after a hit

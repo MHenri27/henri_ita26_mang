@@ -177,8 +177,13 @@ function update(dt) {
   const nearCorner = seg.corner && !p.pendingTurn && seg.length - p.along < TURN_BUFFER;
   showTurnHint(nearCorner ? seg.corner : null);
 
-  updatePlayerMotion(p, dt, speed);
+  const landed = updatePlayerMotion(p, dt, speed);
   checkItems(seg, dt);
+
+  if (landed) {
+    const feet = pathToWorld(seg, p.along, p.x);
+    burst(feet.x, 0.1, feet.z, "#cbb393", 10, 2.2);
+  }
 
   // Dust kicked up while sliding
   if (p.slide > 0 && onGround(p) && Math.random() < 0.7) {
