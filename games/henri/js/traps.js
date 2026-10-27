@@ -42,4 +42,48 @@ const TRAPS = {
       return trapNear(item, p, 0.8) && Math.abs(this.lateral(item) - p.x) < 1.5 + PLAYER_HALF_WIDTH && standingIn(p, 0, 2.6);
     },
   },
+
+  // A heavy stone that keeps slamming down on one lane
+  crusher: {
+    place(seg, along) {
+      const lane = pick([-1, 0, 1]);
+      addItem(seg, "crusher", along, lane).phase = random(0, 1);
+      coinLine(seg, along - 3, pick([-1, 0, 1].filter((l) => l !== lane)), 4);
+    },
+    make(item) {
+      const g = new THREE.Group();
+      for (const x of [-1.1, 1.1]) g.add(part(geo.box, mat.woodDark, 0.3, 5.6, 0.3, x, 2.8, 0));
+      g.add(part(geo.box, mat.woodDark, 2.6, 0.4, 0.5, 0, 5.6, 0));
+      const block = new THREE.Group();
+      block.add(part(geo.box, mat.block, 1.8, 1.6, 1.4, 0, 0.8, 0));
+      block.add(part(geo.box, mat.moss, 1.9, 0.14, 1.5, 0, 1.62, 0));
+      for (const x of [-0.4, 0.4]) block.add(part(geo.box, mat.blockFace, 0.35, 0.25, 0.05, x, 1.1, -0.71));
+      block.add(part(geo.box, mat.blockFace, 1.1, 0.18, 0.05, 0, 0.5, -0.71));
+      g.add(block);
+      item.part = block;
+      return g;
+    },
+    // Waits up top, slams down, sits a moment, then slowly rises
+    height(item) {
+      const t = (world.time * 0.45 + item.phase) % 1;
+      if (t < 0.45) return 3.8;
+      if (t < 0.52) return 3.8 * (1 - (t - 0.45) / 0.07);
+      if (t < 0.7) return 0;
+      return 3.8 * (t - 0.7) / 0.3;
+    },
+    animate(item) {
+      const h = this.height(item);
+      // Dust puff the moment it hits the ground
+      if (h === 0 && !item.slammed) {
+        const m = item.mesh.position;
+        burst(m.x, 0.2, m.z, "#cbb393", 14, 3);
+      }
+      item.slammed = h === 0;
+      item.part.position.y = h;
+    },
+    hits(item, p) {
+      const h = this.height(item);
+      return trapNear(item, p, 1.4) && Math.abs(item.lateral - p.x) < 0.9 + PLAYER_HALF_WIDTH && standingIn(p, h, h + 1.6);
+    },
+  },
 };
