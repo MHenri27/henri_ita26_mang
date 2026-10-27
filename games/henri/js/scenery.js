@@ -80,14 +80,46 @@ function updateMountains(pos) {
   scenery.mountains.position.set(pos.x, 0, pos.z);
 }
 
+// ---- Clouds drifting slowly around the sky ----
+
+function makeClouds() {
+  scenery.clouds = [];
+  const material = new THREE.MeshBasicMaterial({ color: "#f2c39e", fog: false, transparent: true, opacity: 0.85 });
+  const puff = new THREE.IcosahedronGeometry(1, 0);
+
+  for (let i = 0; i < 12; i++) {
+    const cloud = new THREE.Group();
+    for (let k = 0; k < 5; k++) {
+      const p = new THREE.Mesh(puff, material);
+      p.scale.set(random(10, 18), random(4, 7), random(8, 12));
+      p.position.set(k * 9 - 18 + random(-3, 3), random(-2, 2), random(-4, 4));
+      cloud.add(p);
+    }
+    cloud.userData = { angle: random(0, Math.PI * 2), dist: random(180, 330), height: random(70, 120), drift: random(0.004, 0.01) };
+    scenery.clouds.push(cloud);
+    world.scene.add(cloud);
+  }
+}
+
+function updateClouds(dt, pos) {
+  for (const cloud of scenery.clouds) {
+    const d = cloud.userData;
+    d.angle += d.drift * dt;
+    cloud.position.set(pos.x + Math.sin(d.angle) * d.dist, d.height, pos.z + Math.cos(d.angle) * d.dist);
+    cloud.lookAt(pos.x, d.height, pos.z);
+  }
+}
+
 // ---- Setup and per-frame update ----
 
 function createScenery() {
   makeTerrain();
   makeMountains();
+  makeClouds();
 }
 
 function updateScenery(dt, pos) {
   updateTerrain(pos);
   updateMountains(pos);
+  updateClouds(dt, pos);
 }
