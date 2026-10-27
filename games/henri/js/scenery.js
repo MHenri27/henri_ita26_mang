@@ -70,6 +70,7 @@ function shapeTerrain(cx, cz) {
   colorTerrain(geometry);
   scenery.terrain.position.set(cx, 0, cz);
   scenery.terrainCenter = { x: cx, z: cz };
+  if (scenery.cascades) placeCascades(cx, cz);
 }
 
 // Sandy shores low down, grass on the slopes, bare rock where it gets steep or high
@@ -125,6 +126,128 @@ function makeLakes() {
 function updateLakes(pos) {
   // Gentle bob so the water surface feels alive
   scenery.lakes.position.set(pos.x, WATER_LEVEL + Math.sin(world.time * 0.8) * 0.08, pos.z);
+}
+
+// ---- Waterfalls tumbling down the steepest hillsides ----
+
+function makeCascades() {
+  scenery.cascades = new THREE.Group();
+  scenery.poolGeo = new THREE.CylinderGeometry(1, 1.2, 1, 9);
+  world.scene.add(scenery.cascades);
+}
+
+// Finds big drops in the terrain away from the path and runs water down them
+function placeCascades(cx, cz) {
+  const group = scenery.cascades;
+  group.traverse((o) => o.geometry?.type === "BufferGeometry" && o.geometry.dispose());
+  group.clear();
+  const pos = scenery.terrain.geometry.attributes.position;
+  const n = TERRAIN_STEPS + 1;
+  const index = (i, j) => j * n + i;
+  const spots = [];
+
+  for (let j = 2; j < n - 2; j += 2) {
+    for (let i = 2; i < n - 2; i += 2) {
+      const h = pos.getY(index(i, j));
+      if (h < -10) continue;
+
+      // Steepest drop toward a neighbour two cells away
+      let best = null;
+      for (const [di, dj] of [[2, 0], [-2, 0], [0, 2], [0, -2]]) {
+        const drop = h - pos.getY(index(i + di, j + dj));
+        if (drop > 9 && (!best || drop > best.drop)) best = { low: index(i + di, j + dj), drop };
+      }
+      if (!best) continue;
+
+      const x = pos.getX(index(i, j)) + cx;
+      const z = pos.getZ(index(i, j)) + cz;
+      if (distanceToPath(x, z) < 18) continue;
+      spots.push({ x, z, h, ...best });
+    }
+  }
+
+  // The biggest drops win, spread out so they don't bunch up
+  spots.sort((a, b) => b.drop - a.drop);
+  const chosen = [];
+  for (const s of spots) {
+    if (chosen.length >= 6) break;
+    if (chosen.some((c) => Math.hypot(c.x - s.x, c.z - s.z) < 50)) continue;
+    chosen.push(s);
+  }
+
+  for (const s of chosen) {
+    const top = new THREE.Vector3(s.x, s.h + 0.3, s.z);
+    const bottom = new THREE.Vector3(pos.getX(s.low) + cx, pos.getY(s.low) + 0.3, pos.getZ(s.low) + cz);
+    addCascade(group, top, bottom);
+  }
+}
+
+// Height of the drawn terrain, which is a bit coarser than terrainHeight
+function terrainMeshHeight(x, z) {
+  const pos = scenery.terrain.geometry.attributes.position;
+  const c = scenery.terrainCenter;
+  const cell = TERRAIN_SIZE / TERRAIN_STEPS;
+  const n = TERRAIN_STEPS + 1;
+  const gx = clamp((x - c.x + TERRAIN_SIZE / 2) / cell, 0, TERRAIN_STEPS - 0.001);
+  const gz = clamp((z - c.z + TERRAIN_SIZE / 2) / cell, 0, TERRAIN_STEPS - 0.001);
+  const i = Math.floor(gx);
+  const j = Math.floor(gz);
+  const fx = gx - i;
+  const fz = gz - j;
+  const h = (a, b) => pos.getY(b * n + a);
+  const top = h(i, j) * (1 - fx) + h(i + 1, j) * fx;
+  const bottom = h(i, j + 1) * (1 - fx) + h(i + 1, j + 1) * fx;
+  return top * (1 - fz) + bottom * fz;
+}
+
+function addCascade(group, top, bottom) {
+  const dir = bottom.clone().sub(top).setY(0).normalize();
+  const across = new THREE.Vector3(-dir.z, 0, dir.x);
+  const start = top.clone().addScaledVector(dir, -6);
+  const end = bottom.clone().addScaledVector(dir, 2);
+  const length = start.distanceTo(end);
+
+  // Ribbon of water hugging the ground from above the edge down into the pool
+  const steps = 18;
+  const vertices = [];
+  const uvs = [];
+  const faces = [];
+  for (let k = 0; k <= steps; k++) {
+    const p = start.clone().lerp(end, k / steps);
+    const y = terrainMeshHeight(p.x, p.z) + 0.5;
+    for (const s of [-1, 1]) {
+      vertices.push(p.x + across.x * s * 1.5, y, p.z + across.z * s * 1.5);
+      uvs.push((s + 1) / 2, ((k / steps) * length) / 10);
+    }
+    if (k > 0) {
+      const a = (k - 1) * 2;
+      faces.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setIndex(faces);
+  scenery.cascadeMat ??= mat.water.clone();
+  scenery.cascadeMat.side = THREE.DoubleSide;
+  group.add(new THREE.Mesh(geometry, scenery.cascadeMat));
+
+  // Rock lip at the edge it spills over
+  const lip = new THREE.Mesh(geo.box, mat.stoneDark);
+  lip.scale.set(4.4, 1, 1.6);
+  lip.position.set(top.x, terrainMeshHeight(top.x, top.z) + 0.3, top.z);
+  lip.lookAt(bottom.x, lip.position.y, bottom.z);
+  group.add(lip);
+
+  // Foamy pool and spray where it lands
+  const landing = new THREE.Vector3(end.x, terrainMeshHeight(end.x, end.z) + 0.4, end.z);
+  const pool = new THREE.Mesh(scenery.poolGeo, mat.foam);
+  pool.scale.set(3.4, 0.25, 3.4);
+  pool.position.copy(landing);
+  const spray = new THREE.Sprite(mat.waterMist);
+  spray.scale.setScalar(9);
+  spray.position.copy(landing).y += 1.5;
+  group.add(pool, spray);
 }
 
 // ---- Mountains on the horizon ----
@@ -286,6 +409,7 @@ function updateFireflies(dt, pos) {
 
 function createScenery() {
   makeTerrain();
+  makeCascades();
   makeLakes();
   makeMountains();
   makeClouds();
