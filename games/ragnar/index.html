@@ -19,3 +19,138 @@
   </div>
 </body>
 </html>
+
+import tkinter as tk
+import random
+
+RUUT = 20
+LAIUS = 600
+KORGUS = 400
+
+aken = tk.Tk()
+aken.title("Ussimang")
+
+l = tk.Canvas(
+    aken,
+    width=LAIUS,
+    height=KORGUS,
+    bg="black"
+)
+l.pack()
+
+uss = [(100, 100), (80, 100), (60, 100)]
+suund = (RUUT, 0)
+punktid = 0
+mang_labi = False
+
+def uus_oun():
+    while True:
+        koht = (
+            random.randrange(0, LAIUS, RUUT),
+            random.randrange(0, KORGUS, RUUT)
+        )
+        if koht not in uss:
+            return koht
+
+oun = uus_oun()
+
+def klahv(event):
+    global suund
+
+    if mang_labi:
+        return
+
+    if event.keysym == "Up" and suund != (0, RUUT):
+        suund = (0, -RUUT)
+    elif event.keysym == "Down" and suund != (0, -RUUT):
+        suund = (0, RUUT)
+    elif event.keysym == "Left" and suund != (RUUT, 0):
+        suund = (-RUUT, 0)
+    elif event.keysym == "Right" and suund != (-RUUT, 0):
+        suund = (RUUT, 0)
+
+def joonista():
+    l.delete("all")
+
+    for i, (x, y) in enumerate(uss):
+        varv = "lime" if i == 0 else "green"
+        l.create_rectangle(
+            x, y, x + RUUT - 2, y + RUUT - 2,
+            fill=varv, outline=varv
+        )
+
+    x, y = oun
+    l.create_oval(
+        x, y, x + RUUT - 2, y + RUUT - 2,
+        fill="red", outline="red"
+    )
+
+    l.create_text(
+        60, 15,
+        text="Punktid: " + str(punktid),
+        fill="white",
+        font=("Arial", 14)
+    )
+
+def samm():
+    global oun, punktid, mang_labi
+
+    if mang_labi:
+        return
+
+    x = uss[0][0] + suund[0]
+    y = uss[0][1] + suund[1]
+    pea = (x, y)
+
+    if (
+        x < 0 or x >= LAIUS
+        or y < 0 or y >= KORGUS
+        or pea in uss
+    ):
+        mang_labi = True
+        l.create_text(
+            LAIUS // 2, KORGUS // 2,
+            text="MANG LABI!",
+            fill="yellow",
+            font=("Arial", 28)
+        )
+        l.create_text(
+            LAIUS // 2, KORGUS // 2 + 40,
+            text="Vajuta F5 uuesti mangimiseks",
+            fill="white",
+            font=("Arial", 12)
+        )
+        return
+
+    uss.insert(0, pea)
+
+    if pea == oun:
+        punktid += 1
+        oun = uus_oun()
+    else:
+        uss.pop()
+
+    joonista()
+    aken.after(120, samm)
+
+def uuesti(event=None):
+    global uss, suund, punktid, mang_labi, oun
+
+    if not mang_labi:
+        return
+
+    uss = [(100, 100), (80, 100), (60, 100)]
+    suund = (RUUT, 0)
+    punktid = 0
+    mang_labi = False
+    oun = uus_oun()
+
+    joonista()
+    samm()
+
+aken.bind("<Key>", klahv)
+aken.bind("<F5>", uuesti)
+
+joonista()
+samm()
+aken.mainloop()
