@@ -96,6 +96,12 @@ function pickLook(group, item) {
   wearLook(group, item.id);
   dressPlayer();
   renderWardrobe(pickLook);
+
+  // Show it off
+  run.player.cheer = CHEER_TIME;
+  const at = playerMesh.position;
+  burst(at.x, 1.4, at.z, COLORS.coin, 18, 3);
+  playSound("heart");
 }
 
 function endRun() {
@@ -342,6 +348,7 @@ function loop(now) {
   world.time += dt;
 
   if (state === "playing") update(dt);
+  run.player.cheer = Math.max(0, run.player.cheer - dt);
 
   const p = run.player;
   const seg = path.segments[p.seg];

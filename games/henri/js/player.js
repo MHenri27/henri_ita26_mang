@@ -13,6 +13,7 @@ function createPlayer() {
     phase: 0,         // running animation
     land: 0,          // squash timer after landing
     stumble: 0,       // stagger timer after a hit
+    cheer: 0,         // little celebration after picking new clothes
   };
 }
 
@@ -207,6 +208,8 @@ function addGear(id, body, c, box) {
   return null;
 }
 
+const CHEER_TIME = 0.8;
+
 // Every pose sets these numbers, and the model blends toward them
 const POSE_ZERO = {
   lean: 0, y: 0, z: 0,
@@ -218,6 +221,17 @@ const POSE_ZERO = {
 function targetPose(p, mode) {
   const s = Math.sin(p.phase);
   const c = Math.cos(p.phase);
+
+  // Hop with both arms up after trying something on
+  if (mode === "idle" && p.cheer > 0) {
+    const wave = Math.sin(world.time * 18) * 0.3;
+    return {
+      ...POSE_ZERO, y: Math.sin((p.cheer / CHEER_TIME) * Math.PI) * 0.35,
+      kneeL: 0.3, kneeR: 0.3,
+      armL: -2.8 + wave, armR: -2.8 - wave, elbowL: -0.3, elbowR: -0.3,
+      head: -0.2,
+    };
+  }
 
   // Standing around on the menu: breathing and looking about
   if (mode === "idle") {
