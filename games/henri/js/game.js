@@ -188,6 +188,12 @@ function update(dt) {
     burst(feet.x, 0.1, feet.z, "#cbb393", 10, 2.2);
   }
 
+  // Sparkle trail while boosting
+  if (run.boost > 0) {
+    const back = pathToWorld(seg, p.along - 0.4, p.x);
+    burst(back.x, p.y + random(0.3, 1.5), back.z, COLORS.boost, 2, 1.2);
+  }
+
   // Dust kicked up while sliding
   if (p.slide > 0 && onGround(p) && Math.random() < 0.7) {
     const feet = pathToWorld(seg, p.along + 0.6, p.x);
