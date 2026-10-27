@@ -115,6 +115,7 @@ function makeMaterials() {
   g.fillStyle = grad;
   g.fillRect(0, 0, 64, 64);
   const glowTexture = new THREE.CanvasTexture(glowCanvas);
+  mat.glowTexture = glowTexture;
   mat.glow = (color) => new THREE.SpriteMaterial({ map: glowTexture, color, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
   mat.coinGlow = mat.glow("#ffb340");
   mat.heartGlow = mat.glow("#ff4d63");
@@ -216,7 +217,7 @@ function makeParticles() {
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(max * 3), 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(new Float32Array(max * 3), 3));
-  const points = new THREE.Points(geometry, new THREE.PointsMaterial({ size: 0.22, vertexColors: true, transparent: true, depthWrite: false }));
+  const points = new THREE.Points(geometry, new THREE.PointsMaterial({ size: 0.4, map: mat.glowTexture, vertexColors: true, transparent: true, depthWrite: false }));
   points.frustumCulled = false;
   world.scene.add(points);
   world.particles = { points, list: [], max };
