@@ -119,6 +119,24 @@ function makeMaterials() {
   mat.glowTexture = glowTexture;
   mat.glow = (color) => new THREE.SpriteMaterial({ map: glowTexture, color, transparent: true, opacity: 0.5, depthWrite: false, blending: THREE.AdditiveBlending });
   mat.coinGlow = mat.glow("#ffb340");
+
+  // Streaky water that scrolls down, used by waterfalls
+  const waterCanvas = document.createElement("canvas");
+  waterCanvas.width = 32;
+  waterCanvas.height = 128;
+  const w = waterCanvas.getContext("2d");
+  w.fillStyle = "#6fb8e6";
+  w.fillRect(0, 0, 32, 128);
+  for (let i = 0; i < 40; i++) {
+    w.fillStyle = `rgba(255,255,255,${random(0.2, 0.7)})`;
+    w.fillRect(random(0, 32), random(0, 128), random(1, 3), random(10, 40));
+  }
+  mat.waterTexture = new THREE.CanvasTexture(waterCanvas);
+  mat.waterTexture.wrapS = mat.waterTexture.wrapT = THREE.RepeatWrapping;
+  mat.waterTexture.repeat.set(1, 5);
+  mat.water = new THREE.MeshBasicMaterial({ map: mat.waterTexture, transparent: true, opacity: 0.8, depthWrite: false });
+  mat.foam = new THREE.MeshBasicMaterial({ color: "#eaf7ff" });
+  mat.waterMist = mat.glow("#dff3ff");
   mat.heartGlow = mat.glow("#ff4d63");
   mat.boostGlow = mat.glow("#36dcc4");
 }
@@ -234,6 +252,11 @@ function burst(x, y, z, color, count = 14, power = 5) {
   }
   const list = world.particles.list;
   if (list.length > world.particles.max) list.splice(0, list.length - world.particles.max);
+}
+
+// Scrolls the waterfall texture so the water flows
+function updateWater() {
+  mat.waterTexture.offset.y = (world.time * 1.6) % 1;
 }
 
 function updateParticles(dt) {

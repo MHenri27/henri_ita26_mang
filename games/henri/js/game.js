@@ -454,6 +454,7 @@ function loop(now) {
   else if (state !== "paused") hideMonkeys();
   updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading, state === "playing" && run.boost > 0, cameraShowcase());
   updateScenery(dt, pos);
+  updateWater();
   updateParticles(dt);
   renderWorld();
 
