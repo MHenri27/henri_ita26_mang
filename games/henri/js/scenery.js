@@ -11,7 +11,12 @@ const WATER_LEVEL = -21;
 function naturalHeight(x, z) {
   const hills = Math.sin(x * 0.012) * Math.cos(z * 0.01) * 14 + Math.sin((x + z) * 0.021 + 2) * 6;
   const bumps = Math.sin(x * 0.05 + Math.cos(z * 0.04)) * 2.5 + Math.sin(z * 0.07 - x * 0.03) * 1.5;
-  return -14 + hills + bumps;
+
+  // Winding rivers carve channels across the land, the path keeps crossing them
+  const bend = Math.sin(z * 0.016 + Math.sin(x * 0.011) * 2.2);
+  const river = Math.exp(-(bend * bend) / 0.02);
+
+  return -14 + hills + bumps - river * 16;
 }
 
 // Distance to the nearest bit of path. The unbuilt path ahead counts as close too.
@@ -106,7 +111,7 @@ function updateTerrain(pos) {
 
 function makeLakes() {
   const material = new THREE.MeshStandardMaterial({
-    color: "#3d7c86",
+    color: "#2f8f9a",
     roughness: 0.15,
     metalness: 0.2,
     transparent: true,
