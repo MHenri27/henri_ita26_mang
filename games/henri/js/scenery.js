@@ -5,6 +5,7 @@ const scenery = {};
 
 const TERRAIN_SIZE = 420;
 const TERRAIN_STEPS = 60;
+const WATER_LEVEL = -24;
 
 // Shape of the land before the path cuts through it
 function naturalHeight(x, z) {
@@ -54,23 +55,44 @@ function shapeTerrain(cx, cz) {
   const reach = TERRAIN_SIZE * 0.75;
   scenery.nearPath = (scenery.path?.samples || []).filter((p) => Math.hypot(p.x - cx, p.z - cz) < reach);
 
-  const pos = scenery.terrain.geometry.attributes.position;
-  const col = scenery.terrain.geometry.attributes.color;
-  const low = new THREE.Color("#183022");
-  const high = new THREE.Color("#3f6b39");
+  const geometry = scenery.terrain.geometry;
+  const pos = geometry.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setY(i, terrainHeight(pos.getX(i) + cx, pos.getZ(i) + cz));
+  }
+  pos.needsUpdate = true;
+  geometry.computeVertexNormals();
+  colorTerrain(geometry);
+  scenery.terrain.position.set(cx, 0, cz);
+  scenery.terrainCenter = { x: cx, z: cz };
+}
+
+// Sandy shores low down, grass on the slopes, bare rock where it gets steep or high
+const TERRAIN_COLORS = {
+  sand: new THREE.Color("#c2a46e"),
+  grassLow: new THREE.Color("#2c5a2e"),
+  grassHigh: new THREE.Color("#5b8a3e"),
+  rock: new THREE.Color("#6e6458"),
+  peak: new THREE.Color("#8d8270"),
+};
+
+function colorTerrain(geometry) {
+  const pos = geometry.attributes.position;
+  const normal = geometry.attributes.normal;
+  const col = geometry.attributes.color;
+  const t = TERRAIN_COLORS;
   const c = new THREE.Color();
 
   for (let i = 0; i < pos.count; i++) {
-    const h = terrainHeight(pos.getX(i) + cx, pos.getZ(i) + cz);
-    pos.setY(i, h);
-    c.copy(low).lerp(high, clamp((h + 30) / 30, 0, 1));
+    const h = pos.getY(i);
+    const flat = normal.getY(i);
+    c.copy(t.grassLow).lerp(t.grassHigh, clamp((h + 20) / 22, 0, 1));
+    if (h < WATER_LEVEL + 1.5) c.copy(t.sand);
+    if (flat < 0.8) c.lerp(t.rock, clamp((0.8 - flat) / 0.2, 0, 1));
+    if (h > 3) c.lerp(t.peak, clamp((h - 3) / 6, 0, 1));
     col.setXYZ(i, c.r, c.g, c.b);
   }
-  pos.needsUpdate = true;
   col.needsUpdate = true;
-  scenery.terrain.geometry.computeVertexNormals();
-  scenery.terrain.position.set(cx, 0, cz);
-  scenery.terrainCenter = { x: cx, z: cz };
 }
 
 function updateTerrain(pos) {
