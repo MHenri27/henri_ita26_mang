@@ -1,21 +1,131 @@
 <!DOCTYPE html>
 <html lang="et">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ragnar — mäng</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; font-family: system-ui, sans-serif; background: #0a0e12; color: #e8f0ff; display: grid; place-items: center; padding: 1.5rem; }
-    a { color: #5eead4; }
-    .box { text-align: center; max-width: 28rem; line-height: 1.6; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Ussimäng</title>
+    <style>
+        body {
+            background: #222;
+            color: white;
+            text-align: center;
+            font-family: Arial;
+        }
+
+        canvas {
+            background: black;
+            border: 3px solid lime;
+        }
+    </style>
 </head>
 <body>
-  <div class="box">
-    <h1>Ragnar</h1>
-    <p>Siia tuleb sinu mäng. Asenda see fail või lisa siia oma HTML/CSS/JS.</p>
-    <p><a href="../../index.html">← tagasi dashboardile</a></p>
-  </div>
+
+<h1>Ussimäng</h1>
+<p id="punktid">Punktid: 0</p>
+<canvas id="mang" width="600" height="400"></canvas>
+<br>
+<button onclick="algus()">Alusta uuesti</button>
+
+<script>
+const canvas = document.getElementById("mang");
+const ctx = canvas.getContext("2d");
+
+const RUUT = 20;
+let uss, oun, suund, punktid, mangLabi, taimer;
+
+function uusOun() {
+    let koht;
+    do {
+        koht = {
+            x: Math.floor(Math.random() * 30) * RUUT,
+            y: Math.floor(Math.random() * 20) * RUUT
+        };
+    } while (uss.some(osa => osa.x === koht.x && osa.y === koht.y));
+    return koht;
+}
+
+function algus() {
+    clearTimeout(taimer);
+    uss = [
+        {x: 100, y: 100},
+        {x: 80, y: 100},
+        {x: 60, y: 100}
+    ];
+    suund = {x: RUUT, y: 0};
+    punktid = 0;
+    mangLabi = false;
+    oun = uusOun();
+    samm();
+}
+
+document.addEventListener("keydown", function(event) {
+    if (mangLabi) return;
+
+    if (event.key === "ArrowUp" && suund.y !== RUUT)
+        suund = {x: 0, y: -RUUT};
+    else if (event.key === "ArrowDown" && suund.y !== -RUUT)
+        suund = {x: 0, y: RUUT};
+    else if (event.key === "ArrowLeft" && suund.x !== RUUT)
+        suund = {x: -RUUT, y: 0};
+    else if (event.key === "ArrowRight" && suund.x !== -RUUT)
+        suund = {x: RUUT, y: 0};
+});
+
+function samm() {
+    if (mangLabi) return;
+
+    let pea = {
+        x: uss[0].x + suund.x,
+        y: uss[0].y + suund.y
+    };
+
+    let soob = pea.x === oun.x && pea.y === oun.y;
+    let keha = soob ? uss : uss.slice(0, -1);
+
+    if (
+        pea.x < 0 || pea.x >= 600 ||
+        pea.y < 0 || pea.y >= 400 ||
+        keha.some(osa => osa.x === pea.x && osa.y === pea.y)
+    ) {
+        mangLabi = true;
+        joonista();
+        ctx.fillStyle = "yellow";
+        ctx.font = "30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("MÄNG LÄBI!", 300, 200);
+        return;
+    }
+
+    uss.unshift(pea);
+
+    if (soob) {
+        punktid++;
+        oun = uusOun();
+    } else {
+        uss.pop();
+    }
+
+    joonista();
+    taimer = setTimeout(samm, 120);
+}
+
+function joonista() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, 600, 400);
+
+    uss.forEach((osa, i) => {
+        ctx.fillStyle = i === 0 ? "lime" : "green";
+        ctx.fillRect(osa.x, osa.y, RUUT - 2, RUUT - 2);
+    });
+
+    ctx.fillStyle = "red";
+    ctx.fillRect(oun.x, oun.y, RUUT - 2, RUUT - 2);
+
+    document.getElementById("punktid").textContent =
+        "Punktid: " + punktid;
+}
+
+algus();
+</script>
+
 </body>
 </html>
