@@ -129,6 +129,13 @@ function makePlayerMesh() {
   const head = new THREE.Group();
   head.position.y = 1.57;
   head.add(box(c.skin, 0.38, 0.38, 0.38, 0, 0.19, 0));
+  // Simple face: eyes, brows and a mouth
+  const dark = standard("#2a1d14");
+  for (const x of [-0.09, 0.09]) {
+    head.add(box(dark, 0.06, 0.07, 0.02, x, 0.24, 0.19));
+    head.add(box(c.hatBand, 0.1, 0.025, 0.02, x, 0.3, 0.19));
+  }
+  head.add(box(dark, 0.12, 0.025, 0.02, 0, 0.12, 0.19));
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.05, 12), c.hat);
   brim.position.y = 0.4;
   const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.24, 12), c.hat);
