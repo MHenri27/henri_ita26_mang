@@ -304,7 +304,7 @@ function loop(now) {
     animateSegment(s, dt);
   }
 
-  const pos = updatePlayerMesh(playerMesh, p, seg, run.hurt > 0 && state === "playing");
+  const pos = updatePlayerMesh(playerMesh, p, seg, run.hurt > 0 && state === "playing", dt);
   updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading);
   updateParticles(dt);
   renderWorld();

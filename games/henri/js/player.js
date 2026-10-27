@@ -81,24 +81,32 @@ function makePlayerMesh() {
     return m;
   };
 
-  // Legs swing from the hip
+  // Legs: thigh swings from the hip, shin bends at the knee
   const legs = [-0.15, 0.15].map((x) => {
-    const leg = new THREE.Group();
-    leg.position.set(x, 0.85, 0);
-    leg.add(box(c.pants, 0.24, 0.7, 0.26, 0, -0.35, 0));
-    leg.add(box(c.boots, 0.26, 0.18, 0.34, 0, -0.76, 0.04));
-    body.add(leg);
-    return leg;
+    const hip = new THREE.Group();
+    hip.position.set(x, 0.86, 0);
+    hip.add(box(c.pants, 0.24, 0.42, 0.26, 0, -0.21, 0));
+    const knee = new THREE.Group();
+    knee.position.y = -0.42;
+    knee.add(box(c.pants, 0.22, 0.34, 0.24, 0, -0.17, 0));
+    knee.add(box(c.boots, 0.26, 0.16, 0.34, 0, -0.36, 0.04));
+    hip.add(knee);
+    body.add(hip);
+    return { hip, knee };
   });
 
-  // Arms swing from the shoulder
+  // Arms: upper arm from the shoulder, forearm bends at the elbow
   const arms = [-0.42, 0.42].map((x) => {
-    const arm = new THREE.Group();
-    arm.position.set(x, 1.48, 0);
-    arm.add(box(c.shirt, 0.18, 0.5, 0.2, 0, -0.25, 0));
-    arm.add(box(c.skin, 0.16, 0.16, 0.18, 0, -0.56, 0));
-    body.add(arm);
-    return arm;
+    const shoulder = new THREE.Group();
+    shoulder.position.set(x, 1.48, 0);
+    shoulder.add(box(c.shirt, 0.18, 0.3, 0.2, 0, -0.15, 0));
+    const elbow = new THREE.Group();
+    elbow.position.y = -0.28;
+    elbow.add(box(c.shirt, 0.16, 0.22, 0.18, 0, -0.11, 0));
+    elbow.add(box(c.skin, 0.16, 0.14, 0.18, 0, -0.28, 0));
+    shoulder.add(elbow);
+    body.add(shoulder);
+    return { shoulder, elbow };
   });
 
   body.add(box(c.shirt, 0.62, 0.68, 0.36, 0, 1.18, 0));
@@ -106,55 +114,93 @@ function makePlayerMesh() {
   body.add(box(c.scarf, 0.66, 0.12, 0.4, 0, 1.5, 0));
   const scarfTail = box(c.scarf, 0.14, 0.34, 0.08, 0.18, 1.36, -0.24);
   body.add(scarfTail);
-  body.add(box(c.skin, 0.38, 0.38, 0.38, 0, 1.76, 0));
 
+  // Head and hat turn together
+  const head = new THREE.Group();
+  head.position.y = 1.57;
+  head.add(box(c.skin, 0.38, 0.38, 0.38, 0, 0.19, 0));
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.05, 12), c.hat);
-  brim.position.y = 1.97;
+  brim.position.y = 0.4;
   const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.24, 12), c.hat);
-  crown.position.y = 2.1;
+  crown.position.y = 0.53;
   const band = new THREE.Mesh(new THREE.CylinderGeometry(0.265, 0.265, 0.07, 12), c.hatBand);
-  band.position.y = 2.02;
+  band.position.y = 0.45;
   brim.castShadow = crown.castShadow = true;
-  body.add(brim, crown, band);
+  head.add(brim, crown, band);
+  body.add(head);
 
-  root.userData = { body, legs, arms, scarfTail };
+  root.userData = { body, legs, arms, head, scarfTail, pose: { ...POSE_ZERO } };
   return root;
 }
 
-function updatePlayerMesh(mesh, p, seg, invulnerable) {
-  const { body, legs, arms, scarfTail } = mesh.userData;
+// Every pose sets these numbers, and the model blends toward them
+const POSE_ZERO = {
+  lean: 0, y: 0, z: 0,
+  legL: 0, legR: 0, kneeL: 0, kneeR: 0,
+  armL: 0, armR: 0, elbowL: 0, elbowR: 0,
+  head: 0,
+};
+
+function targetPose(p) {
+  const s = Math.sin(p.phase);
+  const c = Math.cos(p.phase);
+
+  if (p.slide > 0) {
+    return { ...POSE_ZERO, lean: -1.15, y: 0.32, z: -0.3, legL: -1.2, legR: -1.2, armL: -2.4, armR: -2.4 };
+  }
+
+  if (!onGround(p)) {
+    return {
+      ...POSE_ZERO, lean: 0.15,
+      legL: -0.9, kneeL: 1.4, legR: 0.4, kneeR: 1.1,
+      armL: -2.6, armR: -2.3, elbowL: -0.3, elbowR: -0.4,
+    };
+  }
+
+  // Running cycle: legs and arms swing opposite, knees fold on the back swing
+  return {
+    ...POSE_ZERO,
+    lean: 0.18,
+    y: Math.abs(c) * 0.08,
+    legL: s * 0.8, kneeL: 0.2 + Math.max(0, c) * 1.2,
+    legR: -s * 0.8, kneeR: 0.2 + Math.max(0, -c) * 1.2,
+    armL: -s * 0.8, armR: s * 0.8,
+    elbowL: -1.1, elbowR: -1.1,
+    head: -0.1,
+  };
+}
+
+function applyPose(rig, target, k) {
+  const pose = rig.pose;
+  for (const key in pose) pose[key] += (target[key] - pose[key]) * k;
+
+  rig.body.rotation.x = pose.lean;
+  rig.body.position.set(0, pose.y, pose.z);
+  rig.legs[0].hip.rotation.x = pose.legL;
+  rig.legs[1].hip.rotation.x = pose.legR;
+  rig.legs[0].knee.rotation.x = pose.kneeL;
+  rig.legs[1].knee.rotation.x = pose.kneeR;
+  rig.arms[0].shoulder.rotation.x = pose.armL;
+  rig.arms[1].shoulder.rotation.x = pose.armR;
+  rig.arms[0].elbow.rotation.x = pose.elbowL;
+  rig.arms[1].elbow.rotation.x = pose.elbowR;
+  rig.head.rotation.x = pose.head;
+}
+
+function updatePlayerMesh(mesh, p, seg, invulnerable, dt) {
+  const rig = mesh.userData;
   const pos = pathToWorld(seg, p.along, p.x);
   mesh.position.set(pos.x, p.y, pos.z);
 
   // Face along the path and lean a bit into lane changes
   const leanAmount = (p.lane * LANE - p.x) * 0.12;
   mesh.rotation.set(0, pos.heading, 0);
-  body.rotation.z = -leanAmount;
+  rig.body.rotation.z = -leanAmount;
 
-  const swing = Math.sin(p.phase);
-
-  if (p.slide > 0) {
-    body.rotation.x = -1.15;
-    body.position.y = 0.32;
-    body.position.z = -0.3;
-    legs.forEach((l) => (l.rotation.x = -1.2));
-    arms.forEach((a) => (a.rotation.x = -2.4));
-  } else if (!onGround(p)) {
-    body.rotation.x = 0.1;
-    body.position.set(0, 0, 0);
-    legs[0].rotation.x = -0.9;
-    legs[1].rotation.x = 0.5;
-    arms[0].rotation.x = -2.5;
-    arms[1].rotation.x = -2.2;
-  } else {
-    body.rotation.x = 0.12;
-    body.position.set(0, Math.abs(Math.cos(p.phase)) * 0.08, 0);
-    legs[0].rotation.x = swing * 0.9;
-    legs[1].rotation.x = -swing * 0.9;
-    arms[0].rotation.x = -swing * 0.8;
-    arms[1].rotation.x = swing * 0.8;
-  }
-  scarfTail.rotation.x = -0.6 + Math.sin(p.phase * 2) * 0.25;
+  // Running is fast enough to follow the cycle closely, other poses ease in
+  const k = onGround(p) && p.slide <= 0 ? 0.6 : Math.min(1, dt * 14);
+  applyPose(rig, targetPose(p), k);
+  rig.scarfTail.rotation.x = -0.6 + Math.sin(p.phase * 2) * 0.25;
 
   // Blink while invulnerable after a hit
   mesh.visible = !invulnerable || Math.floor(world.time * 12) % 2 === 0;
