@@ -82,7 +82,9 @@ function endRun() {
   writeSave();
 
   renderOver(run, score, isBest, reviveCost());
-  showScreen("over");
+  // Let the fall play out before the menu covers it
+  ui.hud.hidden = true;
+  setTimeout(() => state === "over" && showScreen("over"), 900);
 }
 
 function revive() {
