@@ -9,6 +9,8 @@ function loadSave() {
     wallet: 0,
     muted: false,
     upgrades: { hearts: 0, boost: 0, magnet: 0, headstart: 0 },
+    owned: [],   // bought wardrobe items, stored as "group:id"
+    wearing: {}, // chosen item id per wardrobe group
   };
 
   try {
@@ -56,4 +58,37 @@ function boostTime() {
 
 function magnetRange() {
   return upgradeLevel("magnet") * LANE;
+}
+
+// Wardrobe: free items are always owned
+function lookItem(group, id) {
+  const items = LOOKS[group].items;
+  return items.find((i) => i.id === id) || items[0];
+}
+
+function ownsLook(group, id) {
+  return lookItem(group, id).cost === 0 || save.owned.includes(`${group}:${id}`);
+}
+
+function buyLook(group, id) {
+  const item = lookItem(group, id);
+  if (ownsLook(group, id) || save.wallet < item.cost) return false;
+  save.wallet -= item.cost;
+  save.owned.push(`${group}:${id}`);
+  writeSave();
+  return true;
+}
+
+function wearLook(group, id) {
+  if (!ownsLook(group, id)) return false;
+  save.wearing[group] = id;
+  writeSave();
+  return true;
+}
+
+// The full set of items the runner has on right now
+function currentLook() {
+  const look = {};
+  for (const group in LOOKS) look[group] = lookItem(group, save.wearing[group]);
+  return look;
 }
