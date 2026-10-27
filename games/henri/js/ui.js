@@ -44,7 +44,15 @@ let shownHearts = -1;
 
 function updateHud(run, score) {
   ui.score.textContent = score;
-  ui.runCoins.textContent = run.coins;
+
+  // Little bump on the coin counter for every pickup
+  if (ui.runCoins.textContent !== String(run.coins)) {
+    ui.runCoins.textContent = run.coins;
+    const counter = ui.runCoins.parentElement;
+    counter.classList.remove("bump");
+    void counter.offsetWidth; // restarts the css animation
+    counter.classList.add("bump");
+  }
 
   // Only rebuild the hearts when the number changes
   if (shownHearts !== run.hearts) {

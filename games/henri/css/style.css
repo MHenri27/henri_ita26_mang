@@ -87,6 +87,11 @@ canvas {
 
 .coin-count {
   font-size: 1.15rem;
+  transform-origin: left center;
+}
+
+.coin-count.bump {
+  animation: bump 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .ph-coin {
@@ -663,6 +668,10 @@ kbd {
   to { transform: translateX(-50%) scale(1.12); }
 }
 
+@keyframes bump {
+  40% { transform: scale(1.25); }
+}
+
 @keyframes shake {
   25% { transform: translateX(-5px); }
   75% { transform: translateX(5px); }
@@ -673,6 +682,7 @@ kbd {
   .panel,
   .turn-hint,
   .callout,
+  .coin-count.bump,
   .hearts.lost {
     animation: none;
   }
