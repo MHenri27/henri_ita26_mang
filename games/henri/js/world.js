@@ -174,12 +174,8 @@ function makeSky() {
   world.scene.add(world.sky);
 }
 
-// Jungle floor far below the path, plus a mist layer between
+// Mist layer between the path and the jungle hills below
 function makeGround() {
-  world.ground = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), standard(COLORS.ground));
-  world.ground.rotation.x = -Math.PI / 2;
-  world.ground.position.y = -18;
-
   world.mist = new THREE.Mesh(
     new THREE.PlaneGeometry(900, 900),
     new THREE.MeshBasicMaterial({ color: COLORS.mist, transparent: true, opacity: 0.45, depthWrite: false })
@@ -187,7 +183,7 @@ function makeGround() {
   world.mist.rotation.x = -Math.PI / 2;
   world.mist.position.y = -7;
 
-  world.scene.add(world.ground, world.mist);
+  world.scene.add(world.mist);
 }
 
 // Big stepped temples on the horizon. They move with the player so they never get closer.
@@ -380,7 +376,8 @@ function buildSegment(seg, prev) {
   for (let t = 6; t < seg.length - 2; t += 18) {
     if (inGap(seg, t)) continue;
     const p = pointOnSegment(seg, t);
-    pillars.push({ matrix: matrixAt(p.x, -9.5, p.z, p.heading) });
+    // Tall enough to reach the hills below
+    pillars.push({ matrix: matrixAt(p.x, -19, p.z, p.heading, 1, 2, 1) });
   }
   addInstances(group, geo.pillar, mat.stoneDark, pillars, false);
 
@@ -402,13 +399,14 @@ function buildSegment(seg, prev) {
       const dist = random(HALF_WIDTH + 4.5, maxDist);
       const p = pathToWorld(seg, t, side * dist);
       // Most treetops stay below the path, a few tall ones reach above it
-      const height = Math.random() < 0.2 ? random(20, 26) : random(10, 19);
-      const base = -18;
+      const top = Math.random() < 0.2 ? random(2, 8) : random(-8, 1);
+      const ground = terrainHeight(p.x, p.z) - 1;
       const size = random(2.2, 3.6);
 
-      trunks.push({ matrix: matrixAt(p.x, base + height / 2, p.z, 0, 1, height, 1) });
+      // Trunk grows from the hills below up to the treetop
+      trunks.push({ matrix: matrixAt(p.x, (top + ground) / 2, p.z, 0, 1, top - ground, 1) });
       for (let k = 0; k < 3; k++) {
-        const ly = base + height - k * 2.4 + 1;
+        const ly = top - k * 2.4 + 1;
         const r = size * (0.6 + k * 0.3);
         leaves.push({
           matrix: matrixAt(p.x, ly, p.z, random(0, 3), r, 3.4, r),
@@ -718,7 +716,6 @@ function updateCamera(dt, pos, heading, boosting, showcase) {
   // Things that stay put relative to the player
   world.sky.position.copy(cam.position);
   world.temples.position.set(pos.x, 0, pos.z);
-  world.ground.position.set(pos.x, -18, pos.z);
   world.mist.position.set(pos.x, -7, pos.z);
   world.sun.position.set(pos.x - 30, 45, pos.z + 25);
   world.sun.target.position.set(pos.x, 0, pos.z);

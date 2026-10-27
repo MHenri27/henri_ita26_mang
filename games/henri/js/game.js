@@ -3,6 +3,7 @@ const canvas = document.getElementById("game");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 createWorld(canvas);
+createScenery();
 let playerMesh = null;
 dressPlayer();
 createMonkeys();
@@ -380,6 +381,7 @@ function loop(now) {
   if (state === "playing" || state === "over") updateMonkeys(dt, run, path, run.speed, state === "over");
   else if (state !== "paused") hideMonkeys();
   updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading, state === "playing" && run.boost > 0, state === "wardrobe");
+  updateScenery(dt, pos);
   updateParticles(dt);
   renderWorld();
 
