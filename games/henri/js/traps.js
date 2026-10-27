@@ -193,4 +193,68 @@ const TRAPS = {
       return trapNear(item, p, 2) && Math.abs(item.lateral - p.x) < 1.1 + PLAYER_HALF_WIDTH && standingIn(p, 0, 2.2);
     },
   },
+
+  // Water pouring down over one or two lanes, it knocks the runner over
+  waterfall: {
+    smash: false,
+    place(seg, along) {
+      const free = pick([-1, 0, 1]);
+      const wet = [-1, 0, 1].filter((l) => l !== free);
+      for (const lane of Math.random() < 0.5 ? wet : [pick(wet)]) addItem(seg, "waterfall", along, lane);
+      coinLine(seg, along - 3, free, 4);
+    },
+    make(item) {
+      if (!trapMat.water) {
+        // Streaky texture that scrolls down
+        const c = document.createElement("canvas");
+        c.width = 32;
+        c.height = 128;
+        const g = c.getContext("2d");
+        g.fillStyle = "#6fb8e6";
+        g.fillRect(0, 0, 32, 128);
+        for (let i = 0; i < 40; i++) {
+          g.fillStyle = `rgba(255,255,255,${random(0.2, 0.7)})`;
+          g.fillRect(random(0, 32), random(0, 128), random(1, 3), random(10, 40));
+        }
+        const texture = new THREE.CanvasTexture(c);
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(1, 5);
+        trapMat.waterTexture = texture;
+        trapMat.water = new THREE.MeshBasicMaterial({ map: texture, transparent: true, opacity: 0.8, depthWrite: false });
+        trapMat.foam = new THREE.MeshBasicMaterial({ color: "#eaf7ff" });
+        trapMat.mist = mat.glow("#dff3ff");
+      }
+      const g = new THREE.Group();
+      const fall = new THREE.Mesh(geo.box, trapMat.water);
+      fall.scale.set(1.7, 34, 0.5);
+      fall.position.y = 3;
+      g.add(fall);
+      // Rock pillar beside the path with an overhang the water pours from
+      const side = item.lateral >= 0 ? 1 : -1;
+      const pillarX = -(side * (HALF_WIDTH + 2.5) - item.lateral);
+      g.add(part(geo.box, mat.stoneDark, 2.6, 44, 2.6, pillarX, -1, 0));
+      g.add(part(geo.box, mat.stoneDark, Math.abs(pillarX) + 1.4, 1.4, 1.8, pillarX / 2, 20.3, 0));
+      g.add(part(geo.box, mat.moss, Math.abs(pillarX) + 1.5, 0.3, 1.9, pillarX / 2, 21.1, 0));
+      for (let i = 0; i < 4; i++) {
+        const foam = part(geo.box, trapMat.foam, random(0.4, 0.7), 0.25, random(0.4, 0.7), random(-0.7, 0.7), 0.12, random(-0.5, 0.5));
+        foam.rotation.y = random(0, 3);
+        g.add(foam);
+      }
+      const mist = new THREE.Sprite(trapMat.mist);
+      mist.scale.setScalar(3.5);
+      mist.position.y = 0.6;
+      g.add(mist);
+      return g;
+    },
+    animate(item, seg, dt) {
+      trapMat.waterTexture.offset.y = (world.time * 1.6) % 1;
+      if (Math.random() < dt * 6) {
+        const m = item.mesh.position;
+        burst(m.x, 0.3, m.z, "#eaf7ff", 3, 2.5);
+      }
+    },
+    hits(item, p) {
+      return trapNear(item, p, 0.5) && Math.abs(item.lateral - p.x) < 0.85 + PLAYER_HALF_WIDTH;
+    },
+  },
 };
