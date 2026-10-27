@@ -463,6 +463,7 @@ function buildSegment(seg, prev) {
   }
   addInstances(group, geo.trunk, mat.trunk, trunks, false);
   addInstances(group, geo.cone, mat.leaves, leaves, false);
+  addLandmark(seg, group, prev);
 
   for (const item of seg.items) {
     item.mesh = makeItemMesh(item);
@@ -513,6 +514,39 @@ function addTempleGate(seg, group) {
   for (const side of [-1, 1]) {
     addTorch(seg, group, pathToWorld(seg, GATE_ALONG + 1.6, side * (HALF_WIDTH - 0.3)), 1.4);
   }
+}
+
+// A big landmark out in the jungle now and then, facing the path
+function addLandmark(seg, group, prev) {
+  if (Math.random() > 0.45) return;
+  const side = pick([-1, 1]);
+  const dist = random(10, 18);
+  const t = random(4, seg.length - 4);
+
+  // Keep clear of the segments before and after a corner
+  if (seg.corner && side === (seg.corner === "left" ? -1 : 1) && t > seg.length - 16) return;
+  if (prev && prev.corner && side === (prev.corner === "left" ? -1 : 1) && t < 16) return;
+  if (seg.type === "curve" && side === -seg.bend && dist > seg.radius - 6) return;
+
+  const p = pathToWorld(seg, t, side * dist);
+  const ground = terrainHeight(p.x, p.z) - 1;
+  const landmark = new THREE.Group();
+  landmark.position.set(p.x, 0, p.z);
+  landmark.rotation.y = p.heading + side * Math.PI / 2;
+
+  ruinedPillar(landmark, ground);
+  group.add(landmark);
+}
+
+// Broken temple column rising out of the jungle
+function ruinedPillar(g, ground) {
+  geo.column ??= new THREE.CylinderGeometry(0.9, 1.05, 1, 8);
+  const top = random(-1, 7);
+  g.add(part(geo.column, mat.block, 1, top - ground, 1, 0, (top + ground) / 2, 0));
+  g.add(part(geo.column, mat.moss, 1.08, 0.5, 1.08, 0, top - 1.2, 0));
+  const cap = part(geo.box, mat.block, 2.3, 0.7, 2.3, 0.2, top + 0.2, 0);
+  cap.rotation.z = random(-0.35, 0.35);
+  g.add(cap);
 }
 
 function addTorch(seg, group, pos, scale = 1) {
