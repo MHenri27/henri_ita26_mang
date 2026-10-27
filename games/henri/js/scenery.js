@@ -110,16 +110,72 @@ function updateClouds(dt, pos) {
   }
 }
 
+// ---- A flock of birds circling over the jungle ----
+
+function makeBirds() {
+  scenery.birds = [];
+  scenery.flockCenter = new THREE.Vector3();
+  const material = standard("#2b2230");
+
+  for (let i = 0; i < 9; i++) {
+    const bird = new THREE.Group();
+    const body = new THREE.Mesh(geo.box, material);
+    body.scale.set(0.25, 0.2, 0.7);
+    bird.add(body);
+
+    const wings = [-1, 1].map((side) => {
+      const pivot = new THREE.Group();
+      const wing = new THREE.Mesh(geo.box, material);
+      wing.scale.set(1.1, 0.05, 0.4);
+      wing.position.x = side * 0.55;
+      pivot.add(wing);
+      bird.add(pivot);
+      return { pivot, side };
+    });
+
+    bird.userData = {
+      wings,
+      angle: (i / 9) * Math.PI * 2,
+      radius: random(18, 34),
+      height: random(10, 22),
+      speed: random(0.25, 0.4),
+      flap: random(0, 6),
+    };
+    scenery.birds.push(bird);
+    world.scene.add(bird);
+  }
+}
+
+function updateBirds(dt, pos) {
+  // The flock lazily follows the player and circles around them
+  const c = scenery.flockCenter;
+  c.lerp(new THREE.Vector3(pos.x, 0, pos.z), Math.min(1, dt * 0.5));
+
+  for (const bird of scenery.birds) {
+    const d = bird.userData;
+    d.angle += d.speed * dt;
+    const x = c.x + Math.sin(d.angle) * d.radius;
+    const z = c.z + Math.cos(d.angle) * d.radius;
+    const y = d.height + Math.sin(world.time * 0.7 + d.flap) * 1.5;
+    bird.position.set(x, y, z);
+    bird.lookAt(x + Math.cos(d.angle), y, z - Math.sin(d.angle));
+    const flap = Math.sin(world.time * 9 + d.flap) * 0.6;
+    d.wings.forEach((w) => (w.pivot.rotation.z = w.side * flap));
+  }
+}
+
 // ---- Setup and per-frame update ----
 
 function createScenery() {
   makeTerrain();
   makeMountains();
   makeClouds();
+  makeBirds();
 }
 
 function updateScenery(dt, pos) {
   updateTerrain(pos);
   updateMountains(pos);
   updateClouds(dt, pos);
+  updateBirds(dt, pos);
 }
