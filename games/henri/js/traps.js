@@ -257,4 +257,38 @@ const TRAPS = {
       return trapNear(item, p, 0.5) && Math.abs(item.lateral - p.x) < 0.85 + PLAYER_HALF_WIDTH;
     },
   },
+
+  // A chasm with a stone platform sliding across it. Stay on the platform.
+  platform: {
+    hole: 8,
+    smash: false,
+    onCurve: false,
+    place(seg, along) {
+      addItem(seg, "platform", along + 3, 0).phase = random(0, Math.PI * 2);
+    },
+    make(item) {
+      const g = new THREE.Group();
+      const slab = new THREE.Group();
+      slab.add(part(geo.box, mat.cornerTile, 2.4, 0.6, this.hole + 1.2, 0, -0.3, 0));
+      slab.add(part(geo.box, mat.stoneDark, 2, 0.8, this.hole, 0, -1, 0));
+      for (const z of [-3, 0, 3]) slab.add(part(geo.box, mat.leaves, 0.14, 1.6, 0.14, 1.1, -1.5, z));
+      g.add(slab);
+      item.part = slab;
+      return g;
+    },
+    lateral(item) {
+      return Math.sin(world.time * 0.9 + item.phase) * LANE;
+    },
+    animate(item) {
+      item.part.position.x = -this.lateral(item);
+    },
+    // Only hurts when standing over the chasm and off the platform
+    hits(item, p) {
+      if (Math.abs(item.along - p.along) > this.hole / 2 - 0.3 || !onGround(p)) return false;
+      return Math.abs(this.lateral(item) - p.x) > 1.3;
+    },
+    onHit(item, p) {
+      p.vy = JUMP_SPEED; // scramble out of the chasm
+    },
+  },
 };
