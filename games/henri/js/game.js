@@ -54,8 +54,54 @@ function reviveCost() {
 
 function startRun() {
   newRun();
-  state = "playing";
-  showScreen("playing");
+  run.intro = 0;
+  run.chase = 30; // monkeys start deep inside the temple behind the gate
+  state = "intro";
+  showScreen("intro");
+}
+
+// Short cutscene: the monkeys burst out of the temple and the runner takes off
+const INTRO_TIME = 2.8;
+const INTRO_GO = 1.4; // when the runner starts running
+
+function updateIntro(dt) {
+  const p = run.player;
+  run.intro += dt;
+  const t = run.intro;
+
+  run.chase = Math.max(5, 30 - t * 9);
+
+  if (t > 0.9 && !run.shouted) {
+    run.shouted = true;
+    playSound("monkey");
+    showCallout("Run!");
+  }
+
+  if (t > INTRO_GO) {
+    const speed = START_SPEED * Math.min(1, (t - INTRO_GO) / 1);
+    p.along += speed * dt;
+    run.distance += speed * dt;
+    updatePlayerMotion(p, dt, speed);
+  }
+
+  if (t >= INTRO_TIME) {
+    state = "playing";
+    showScreen("playing");
+  }
+}
+
+// Jump straight to the part where the runner takes off
+function skipIntro() {
+  if (run.intro >= INTRO_GO) return;
+  run.intro = INTRO_GO;
+  run.shouted = true;
+  showCallout("Run!");
+}
+
+function introMode() {
+  if (run.intro < 0.9) return "idle";
+  if (run.intro < INTRO_GO) return "startled";
+  return "run";
 }
 
 function togglePause() {
@@ -371,6 +417,13 @@ function collect(item) {
   }
 }
 
+// The camera turns around to face the runner in the wardrobe and the intro
+function cameraShowcase() {
+  if (state === "wardrobe") return "wardrobe";
+  if (state === "intro" && run.intro < INTRO_GO) return "intro";
+  return null;
+}
+
 function loop(now) {
   // Clamp dt so a background tab doesn't teleport the player
   const dt = Math.min((now - lastTime) / 1000, 0.05);
@@ -378,6 +431,7 @@ function loop(now) {
   world.time += dt;
 
   if (state === "playing") update(dt);
+  if (state === "intro") updateIntro(dt);
   run.player.cheer = Math.max(0, run.player.cheer - dt);
 
   const p = run.player;
@@ -391,13 +445,14 @@ function loop(now) {
   }
 
   const idle = state === "menu" || state === "wardrobe" || (state === "shop" && shopReturn === "menu");
-  const mode = state === "over" ? "dead" : idle ? "idle" : "run";
+  let mode = state === "over" ? "dead" : idle ? "idle" : "run";
+  if (state === "intro") mode = introMode();
   const pos = updatePlayerMesh(playerMesh, p, seg, mode, run.hurt > 0 && state === "playing", dt);
 
   // Monkeys only show up once a run is going, and crowd around when it ends
-  if (state === "playing" || state === "over") updateMonkeys(dt, run, path, run.speed, state === "over");
+  if (state === "playing" || state === "over" || state === "intro") updateMonkeys(dt, run, path, run.speed, state === "over");
   else if (state !== "paused") hideMonkeys();
-  updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading, state === "playing" && run.boost > 0, state === "wardrobe");
+  updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading, state === "playing" && run.boost > 0, cameraShowcase());
   updateScenery(dt, pos);
   updateParticles(dt);
   renderWorld();
@@ -411,6 +466,7 @@ setupInput({
   jump: () => {
     if (state === "playing" && playerJump(run.player)) playSound("jump");
     else if (state === "menu") startRun();
+    else if (state === "intro") skipIntro();
   },
   slide: () => state === "playing" && playerSlide(run.player) && playSound("slide"),
   pause: togglePause,
@@ -418,6 +474,7 @@ setupInput({
   confirm: () => {
     if (state === "menu" || state === "over") startRun();
     else if (state === "paused") togglePause();
+    else if (state === "intro") skipIntro();
   },
 });
 

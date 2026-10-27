@@ -245,6 +245,16 @@ function targetPose(p, mode) {
     };
   }
 
+  // Startled look over the shoulder when the monkeys show up
+  if (mode === "startled") {
+    return {
+      ...POSE_ZERO, lean: -0.15, y: 0.05,
+      legL: -0.2, kneeL: 0.3, legR: 0.25, kneeR: 0.2,
+      armL: -2.2, armR: -1.6, elbowL: -0.8, elbowR: -0.9,
+      head: -0.1, headTurn: 1.3,
+    };
+  }
+
   // Out of hearts: face down on the stones
   if (mode === "dead") {
     return {

@@ -697,26 +697,31 @@ function updateCamera(dt, pos, heading, boosting, showcase) {
   const m = world.showcase * world.showcase * (3 - 2 * world.showcase);
   const mix = (a, b) => a + (b - a) * m;
 
+  // Keep the last showcase shot while swinging back, so it does not jump
+  if (showcase) world.shot = showcase;
   const narrow = world.camera.aspect < 0.8;
-  const orbit = mix(Math.PI, 0.35 + Math.sin(world.time * 0.4) * 0.2);
-  const dist = mix(7.5, narrow ? 5.2 : 4.4);
+  const shot = world.shot === "intro"
+    ? { orbit: 0.3, dist: narrow ? 8 : 6.5, height: 2.6, lookY: 1, side: 0 }
+    : { orbit: 0.35 + Math.sin(world.time * 0.4) * 0.2, dist: narrow ? 5.2 : 4.4, height: 1.9, lookY: narrow ? -1.1 : 1.1, side: narrow ? 0 : 1.5 };
+
+  const orbit = mix(Math.PI, shot.orbit);
+  const dist = mix(7.5, shot.dist);
   const o = forward(world.camHeading + orbit);
   const cam = world.camera;
-  cam.position.set(pos.x + o.x * dist, mix(pos.y * 0.5 + 4.6, 1.9), pos.z + o.z * dist);
+  cam.position.set(pos.x + o.x * dist, mix(pos.y * 0.5 + 4.6, shot.height), pos.z + o.z * dist);
   if (world.shake > 0) {
     world.shake -= dt;
     cam.position.x += random(-1, 1) * world.shake;
     cam.position.y += random(-1, 1) * world.shake;
   }
 
-  // In the showcase the runner sits beside the panel, or above it on phones
+  // In the wardrobe the runner sits beside the panel, or above it on phones
   const f = forward(world.camHeading);
   const r = rightOf(world.camHeading);
-  const side = narrow ? 0 : 1.5;
   cam.lookAt(
-    mix(pos.x + f.x * 8, pos.x + r.x * side),
-    mix(1.2 + pos.y * 0.3, narrow ? -1.1 : 1.1),
-    mix(pos.z + f.z * 8, pos.z + r.z * side)
+    mix(pos.x + f.x * 8, pos.x + r.x * shot.side),
+    mix(1.2 + pos.y * 0.3, shot.lookY),
+    mix(pos.z + f.z * 8, pos.z + r.z * shot.side)
   );
 
   // Things that stay put relative to the player

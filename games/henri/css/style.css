@@ -178,6 +178,30 @@ canvas {
   color: var(--accent);
 }
 
+/* "Run!" at the start of a run */
+.callout {
+  position: fixed;
+  top: 26%;
+  left: 0;
+  right: 0;
+  text-align: center;
+  pointer-events: none;
+  color: var(--ink);
+  font-size: clamp(3.5rem, 13vw, 6rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-shadow: 0 6px 30px rgb(0 0 0 / 0.45);
+  animation: callout 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes callout {
+  0% { opacity: 0; transform: scale(0.6); }
+  18% { opacity: 1; transform: scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
 /* ---- Screens ---- */
 
 .screen {
@@ -612,6 +636,7 @@ kbd {
   .screen,
   .panel,
   .turn-hint,
+  .callout,
   .hearts.lost {
     animation: none;
   }

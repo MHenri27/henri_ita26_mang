@@ -21,7 +21,7 @@ const ui = {
 
 function showScreen(name) {
   for (const [key, el] of Object.entries(ui.screens)) el.hidden = key !== name;
-  ui.hud.hidden = name === "menu" || name === "shop" || name === "wardrobe";
+  ui.hud.hidden = ["menu", "shop", "wardrobe", "intro"].includes(name);
   if (name !== "playing") ui.turnHint.hidden = true;
 
   updateWallet();
@@ -66,6 +66,18 @@ function updateHud(run, score) {
 
   ui.boost.hidden = run.boost <= 0;
   ui.boostBar.style.transform = `scaleX(${Math.min(1, run.boost / boostTime())})`;
+}
+
+// Big word that pops up in the middle of the screen
+function showCallout(text) {
+  const el = $("callout");
+  el.textContent = text;
+  el.hidden = false;
+  el.style.animation = "none";
+  void el.offsetWidth; // restarts the css animation
+  el.style.animation = "";
+  clearTimeout(el.timer);
+  el.timer = setTimeout(() => (el.hidden = true), 1200);
 }
 
 function showTurnHint(side) {
