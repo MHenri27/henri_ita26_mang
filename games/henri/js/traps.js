@@ -86,4 +86,40 @@ const TRAPS = {
       return trapNear(item, p, 1.4) && Math.abs(item.lateral - p.x) < 0.9 + PLAYER_HALF_WIDTH && standingIn(p, h, h + 1.6);
     },
   },
+
+  // Spikes popping out of the floor across the whole path
+  spikes: {
+    place(seg, along) {
+      addItem(seg, "spikes", along, 0).phase = random(0, 1);
+      coinArc(seg, along, pick([-1, 0, 1]));
+    },
+    make(item) {
+      trapMat.metal ??= standard("#a3a7ad", { metalness: 0.6, roughness: 0.35 });
+      const g = new THREE.Group();
+      g.add(part(geo.box, mat.grate, HALF_WIDTH * 2 - 0.4, 0.06, 1.4, 0, 0.03, 0));
+      const spikes = new THREE.Group();
+      for (let i = 0; i < 12; i++) {
+        for (const z of [-0.35, 0.35]) {
+          spikes.add(part(geo.cone, trapMat.metal, 0.16, 0.75, 0.16, -HALF_WIDTH + 0.55 + i * 0.54, 0.37, z));
+        }
+      }
+      g.add(spikes);
+      item.part = spikes;
+      return g;
+    },
+    // Up for about a second, then down for a bit less
+    height(item) {
+      const t = (world.time * 0.5 + item.phase) % 1;
+      if (t < 0.5) return 0.75;
+      if (t < 0.55) return 0.75 * (1 - (t - 0.5) / 0.05);
+      if (t < 0.95) return 0;
+      return 0.75 * (t - 0.95) / 0.05;
+    },
+    animate(item) {
+      item.part.position.y = this.height(item) - 0.75;
+    },
+    hits(item, p) {
+      return trapNear(item, p, 1.2) && p.y < this.height(item) - 0.1;
+    },
+  },
 };
