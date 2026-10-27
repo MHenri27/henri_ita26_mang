@@ -72,6 +72,7 @@ function shapeTerrain(cx, cz) {
   scenery.terrainCenter = { x: cx, z: cz };
   if (scenery.cascades) placeCascades(cx, cz);
   if (scenery.trunks) placeForest(cx, cz);
+  if (scenery.rocks) placeRocks(cx, cz);
 }
 
 // Sandy shores low down, grass on the slopes, bare rock where it gets steep or high
@@ -159,6 +160,40 @@ function placeForest(cx, cz) {
   scenery.trunks.instanceMatrix.needsUpdate = true;
   scenery.crowns.instanceMatrix.needsUpdate = true;
   if (scenery.crowns.instanceColor) scenery.crowns.instanceColor.needsUpdate = true;
+}
+
+// ---- Boulders on the slopes and along the shores ----
+
+const ROCK_MAX = 300;
+
+function makeRocks() {
+  scenery.rocks = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1, 0), mat.stoneDark, ROCK_MAX);
+  scenery.rocks.receiveShadow = true;
+  world.scene.add(scenery.rocks);
+}
+
+function placeRocks(cx, cz) {
+  const cell = 13;
+  const half = TERRAIN_SIZE / 2 - cell;
+  let count = 0;
+
+  for (let gx = Math.ceil((cx - half) / cell); gx < (cx + half) / cell; gx++) {
+    for (let gz = Math.ceil((cz - half) / cell); gz < (cz + half) / cell; gz++) {
+      if (count >= ROCK_MAX || cellRandom(gx, gz, 9) > 0.3) continue;
+      const x = (gx + cellRandom(gx, gz, 10)) * cell;
+      const z = (gz + cellRandom(gx, gz, 11)) * cell;
+      if (distanceToPath(x, z) < 8) continue;
+      const size = 0.8 + cellRandom(gx, gz, 12) * 2.4;
+      const h = terrainMeshHeight(x, z);
+      dummy.position.set(x, h + size * 0.3, z);
+      dummy.rotation.set(gx, gz, gx + gz);
+      dummy.scale.set(size * 1.3, size * 0.8, size);
+      dummy.updateMatrix();
+      scenery.rocks.setMatrixAt(count++, dummy.matrix);
+    }
+  }
+  scenery.rocks.count = count;
+  scenery.rocks.instanceMatrix.needsUpdate = true;
 }
 
 // ---- Lakes filling the low valleys ----
@@ -463,6 +498,7 @@ function updateFireflies(dt, pos) {
 function createScenery() {
   makeTerrain();
   makeForest();
+  makeRocks();
   makeCascades();
   makeLakes();
   makeMountains();
