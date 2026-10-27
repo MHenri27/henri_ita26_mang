@@ -521,9 +521,9 @@ function addTempleGate(seg, group) {
 
 // A big landmark out in the jungle now and then, facing the path
 function addLandmark(seg, group, prev) {
-  if (Math.random() > 0.45) return;
+  if (Math.random() > 0.5) return;
   const side = pick([-1, 1]);
-  const dist = random(10, 18);
+  const dist = random(14, 26);
   const t = random(4, seg.length - 4);
 
   // Keep clear of the segments before and after a corner
@@ -532,43 +532,22 @@ function addLandmark(seg, group, prev) {
   if (seg.type === "curve" && side === -seg.bend && dist > seg.radius - 6) return;
 
   const p = pathToWorld(seg, t, side * dist);
-  const ground = terrainHeight(p.x, p.z) - 1;
+  // Landmarks stand on the ground, never in the water
+  const ground = terrainHeight(p.x, p.z) - 0.5;
+  if (ground < WATER_LEVEL + 1) return;
   const landmark = new THREE.Group();
   landmark.position.set(p.x, 0, p.z);
   landmark.rotation.y = p.heading + side * Math.PI / 2;
 
-  const roll = Math.random();
-  if (roll < 0.4) ruinedPillar(landmark, ground);
-  else if (roll < 0.7) stoneHead(landmark, ground);
-  else waterfallRock(landmark, ground);
+  if (Math.random() < 0.5) ruinedPillar(landmark, ground);
+  else stoneHead(landmark, ground);
   group.add(landmark);
 }
 
-// Tall rock spire with a waterfall pouring down the side facing the path
-function waterfallRock(g, ground) {
-  geo.spire ??= new THREE.CylinderGeometry(2.2, 3.6, 1, 6);
-  const top = random(8, 15);
-  g.add(part(geo.spire, mat.stoneDark, 1, top - ground, 1, 0, (top + ground) / 2, 0));
-  g.add(part(geo.spire, mat.moss, 1.02, 0.6, 1.02, 0, top - 0.2, 0));
-  mat.bush ??= standard(COLORS.leaves[1]);
-  for (let i = 0; i < 3; i++) {
-    g.add(part(geo.cone, mat.bush, 1.2, 1.8, 1.2, random(-1.2, 1.2), top + 0.6, random(-1.2, 1.2)));
-  }
-
-  const fall = new THREE.Mesh(geo.box, mat.water);
-  fall.scale.set(1.4, top - 1 - ground, 0.3);
-  fall.position.set(0, (top - 1 + ground) / 2, 2.55);
-  g.add(fall);
-
-  const mist = new THREE.Sprite(mat.waterMist);
-  mist.scale.setScalar(9);
-  mist.position.set(0, -6, 3);
-  g.add(mist);
-}
-
-// Giant carved head on a plinth, staring at the runner
+// Giant carved head half sunk into the hillside, staring at the runner
 function stoneHead(g, ground) {
-  g.add(part(geo.box, mat.stoneDark, 3.2, -0.5 - ground, 3.2, 0, (ground - 0.5) / 2, 0));
+  g.position.y = ground + 0.2;
+  g.scale.setScalar(1.4);
   g.add(part(geo.box, mat.block, 3.2, 3.6, 3, 0, 1.3, 0));
   g.add(part(geo.box, mat.moss, 3.3, 0.35, 3.1, 0, 3.2, 0));
   g.add(part(geo.box, mat.blockFace, 2.6, 0.3, 0.1, 0, 2.4, 1.52)); // brow
@@ -583,7 +562,7 @@ function stoneHead(g, ground) {
 // Broken temple column rising out of the jungle
 function ruinedPillar(g, ground) {
   geo.column ??= new THREE.CylinderGeometry(0.9, 1.05, 1, 8);
-  const top = random(-1, 7);
+  const top = ground + random(5, 11);
   g.add(part(geo.column, mat.block, 1, top - ground, 1, 0, (top + ground) / 2, 0));
   g.add(part(geo.column, mat.moss, 1.08, 0.5, 1.08, 0, top - 1.2, 0));
   const cap = part(geo.box, mat.block, 2.3, 0.7, 2.3, 0.2, top + 0.2, 0);
