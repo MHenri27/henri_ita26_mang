@@ -185,7 +185,16 @@ function placeRow(seg, along, difficulty) {
 
   const options = ["blocks", "blocks", "log", "beam", "fire", "roller"];
   if (!isCurve && seg.index > 0) options.push("gap");
+  // Moving traps from traps.js, some only fit on a straight path
+  for (const [kind, trap] of Object.entries(TRAPS)) {
+    if (!isCurve || trap.onCurve !== false) options.push(kind);
+  }
   const pattern = pick(options);
+
+  if (TRAPS[pattern]) {
+    TRAPS[pattern].place(seg, along, difficulty);
+    return;
+  }
 
   switch (pattern) {
     case "blocks": {

@@ -263,8 +263,10 @@ function checkItems(seg, dt) {
     const dz = item.along - p.along;
     if (dz > 8 || dz < -3) continue;
 
+    const trap = TRAPS[item.kind];
     const def = OBSTACLES[item.kind];
-    if (def) checkObstacle(item, def, dz);
+    if (trap) checkTrap(item, trap);
+    else if (def) checkObstacle(item, def, dz);
     else checkPickup(item, dz, dt);
     if (state !== "playing") return;
   }
@@ -288,15 +290,30 @@ function checkObstacle(item, def, dz) {
   if (p.y >= def.top || p.y + playerHeight(p) <= def.bottom) return;
 
   if (run.boost > 0) {
-    // Boosting smashes straight through
-    item.done = true;
-    item.mesh.visible = false;
-    const m = item.mesh.position;
-    burst(m.x, m.y + 0.8, m.z, item.kind === "fire" ? COLORS.flame : COLORS.block, 26, 7);
-    playSound("smash");
+    smash(item);
     return;
   }
   hurt();
+}
+
+function checkTrap(item, trap) {
+  const p = run.player;
+  if (!trap.hits(item, p)) return;
+  if (run.boost > 0) {
+    if (trap.smash !== false) smash(item);
+    return;
+  }
+  hurt();
+  trap.onHit?.(item, p);
+}
+
+// Boosting smashes straight through obstacles
+function smash(item) {
+  item.done = true;
+  item.mesh.visible = false;
+  const m = item.mesh.position;
+  burst(m.x, m.y + 0.8, m.z, item.kind === "fire" ? COLORS.flame : COLORS.block, 26, 7);
+  playSound("smash");
 }
 
 function checkPickup(item, dz, dt) {

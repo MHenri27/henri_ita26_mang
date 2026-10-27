@@ -294,8 +294,12 @@ function addInstances(group, geometry, material, list, shadows = true) {
   group.add(mesh);
 }
 
+// Spots with no tiles: gaps, and traps that open a hole in the path
 function inGap(seg, along) {
-  return seg.items.some((i) => i.kind === "gap" && Math.abs(i.along - along) < OBSTACLES.gap.depth / 2);
+  return seg.items.some((i) => {
+    const length = i.kind === "gap" ? OBSTACLES.gap.depth : TRAPS[i.kind]?.hole;
+    return length && Math.abs(i.along - along) < length / 2;
+  });
 }
 
 function buildSegment(seg, prev) {
@@ -617,7 +621,8 @@ function makeItemMesh(item) {
     }
 
     default:
-      return null; // gaps have no mesh, the missing tiles are the obstacle
+      // Traps build their own mesh, gaps have none since the missing tiles are the obstacle
+      return TRAPS[item.kind] ? TRAPS[item.kind].make(item) : null;
   }
 
   return g;
@@ -670,6 +675,7 @@ function animateSegment(seg, dt) {
       item.wheel.rotation.z -= before.distanceTo(item.mesh.position) / 0.45 * Math.sign(Math.cos(t * 1.4 + item.phase));
     }
     if (item.pulled) placeItemMesh(seg, item);
+    TRAPS[item.kind]?.animate?.(item, seg, dt);
   }
 }
 
