@@ -107,6 +107,7 @@ function introMode() {
 function togglePause() {
   if (state === "playing") {
     state = "paused";
+    renderPause(run, scoreOf(run));
     showScreen("paused");
   } else if (state === "paused") {
     state = "playing";
@@ -490,6 +491,7 @@ $("again-btn").addEventListener("click", startRun);
 $("resume-btn").addEventListener("click", togglePause);
 $("pause-btn").addEventListener("click", togglePause);
 $("mute-btn").addEventListener("click", toggleMute);
+$("pause-sound-btn").addEventListener("click", toggleMute);
 $("revive-btn").addEventListener("click", revive);
 $("shop-btn").addEventListener("click", () => openShop("menu"));
 $("over-shop-btn").addEventListener("click", () => openShop("over"));

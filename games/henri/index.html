@@ -99,10 +99,20 @@
   <section class="screen" id="pause" hidden>
     <div class="panel">
       <h2>Paused</h2>
+      <p id="pause-stats">0 points so far</p>
       <div class="actions">
-        <button class="btn" id="resume-btn">Resume</button>
-        <button class="btn secondary" id="quit-btn">Quit to menu</button>
+        <button class="btn big" id="resume-btn"><i class="ph-fill ph-play"></i>Resume</button>
+        <div class="actions-row">
+          <button class="btn secondary" id="pause-sound-btn"></button>
+          <button class="btn secondary" id="quit-btn"><i class="ph-fill ph-house"></i>Menu</button>
+        </div>
       </div>
+      <ul class="keys">
+        <li><span><kbd>&larr;</kbd><kbd>&rarr;</kbd></span> Switch lane, turn at corners</li>
+        <li><span><kbd>&uarr;</kbd><kbd>Space</kbd></span> Jump</li>
+        <li><span><kbd>&darr;</kbd></span> Slide</li>
+        <li><span><kbd>P</kbd><kbd>M</kbd></span> Pause, sound</li>
+      </ul>
     </div>
   </section>
 

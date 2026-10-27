@@ -40,7 +40,13 @@ function updateWallet() {
 }
 
 function updateMuteIcon() {
-  ui.muteBtn.innerHTML = `<i class="ph-fill ${save.muted ? "ph-speaker-slash" : "ph-speaker-high"}"></i>`;
+  const icon = `<i class="ph-fill ${save.muted ? "ph-speaker-slash" : "ph-speaker-high"}"></i>`;
+  ui.muteBtn.innerHTML = icon;
+  $("pause-sound-btn").innerHTML = `${icon}${save.muted ? "Sound off" : "Sound on"}`;
+}
+
+function renderPause(run, score) {
+  $("pause-stats").textContent = `${score} points and ${run.coins} coins so far.`;
 }
 
 let shownHearts = -1;
