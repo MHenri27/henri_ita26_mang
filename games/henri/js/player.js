@@ -148,12 +148,24 @@ const POSE_ZERO = {
   lean: 0, y: 0, z: 0,
   legL: 0, legR: 0, kneeL: 0, kneeR: 0,
   armL: 0, armR: 0, elbowL: 0, elbowR: 0,
-  head: 0,
+  head: 0, headTurn: 0,
 };
 
 function targetPose(p, mode) {
   const s = Math.sin(p.phase);
   const c = Math.cos(p.phase);
+
+  // Standing around on the menu: breathing and looking about
+  if (mode === "idle") {
+    const t = world.time;
+    const breath = Math.sin(t * 2.2);
+    return {
+      ...POSE_ZERO, y: breath * 0.015,
+      kneeL: 0.05, kneeR: 0.05, legL: -0.05, legR: 0.08,
+      armL: 0.08 + breath * 0.04, armR: -0.08 - breath * 0.04, elbowL: -0.25, elbowR: -0.25,
+      head: Math.sin(t * 0.9) * 0.08, headTurn: Math.sin(t * 0.6) * 0.6,
+    };
+  }
 
   // Out of hearts: face down on the stones
   if (mode === "dead") {
@@ -221,6 +233,7 @@ function applyPose(rig, target, k) {
   rig.arms[0].elbow.rotation.x = pose.elbowL;
   rig.arms[1].elbow.rotation.x = pose.elbowR;
   rig.head.rotation.x = pose.head;
+  rig.head.rotation.y = pose.headTurn;
 }
 
 function updatePlayerMesh(mesh, p, seg, mode, blink, dt) {
