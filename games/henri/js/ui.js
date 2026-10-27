@@ -22,7 +22,10 @@ const ui = {
 function showScreen(name) {
   for (const [key, el] of Object.entries(ui.screens)) el.hidden = key !== name;
   ui.hud.hidden = ["menu", "shop", "wardrobe", "intro"].includes(name);
-  if (name !== "playing") ui.turnHint.hidden = true;
+  if (name !== "playing") {
+    ui.turnHint.hidden = true;
+    $("danger").hidden = true;
+  }
 
   updateWallet();
   $("menu-best").textContent = save.best;
@@ -71,6 +74,9 @@ function updateHud(run, score) {
     }
     shownHearts = run.hearts;
   }
+
+  // Warn when one more stumble would let the monkeys catch up
+  $("danger").hidden = run.chase > CHASE_REST - 2;
 
   ui.boost.hidden = run.boost <= 0;
   ui.boostBar.style.transform = `scaleX(${Math.min(1, run.boost / boostTime())})`;

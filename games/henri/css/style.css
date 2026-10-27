@@ -160,6 +160,35 @@ canvas {
   outline-offset: 3px;
 }
 
+/* Pill at the top while the monkeys are close */
+.danger {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgb(120 16 30 / 0.82);
+  color: #ffe3e6;
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: warn 0.8s ease-in-out infinite alternate;
+}
+
+.danger i {
+  color: var(--heart);
+  font-size: 1.1rem;
+}
+
+@keyframes warn {
+  to { background: rgb(170 22 42 / 0.9); }
+}
+
 /* Arrow that shows up before a corner */
 .turn-hint {
   position: fixed;
@@ -682,6 +711,7 @@ kbd {
   .panel,
   .turn-hint,
   .callout,
+  .danger,
   .coin-count.bump,
   .hearts.lost {
     animation: none;
@@ -719,5 +749,9 @@ kbd {
 
   .hearts {
     font-size: 1.3rem;
+  }
+
+  .danger {
+    top: 84px;
   }
 }
