@@ -50,6 +50,15 @@ function pathToWorld(seg, along, lateral) {
   return { x: p.x + r.x * lateral, z: p.z + r.z * lateral, heading: p.heading };
 }
 
+// Walks back along the path, across corners if needed
+function pathBehind(path, segIndex, along) {
+  while (along < 0 && segIndex > 0) {
+    segIndex--;
+    along += path.segments[segIndex].length;
+  }
+  return { seg: path.segments[segIndex], along };
+}
+
 function createPath() {
   return {
     segments: [],

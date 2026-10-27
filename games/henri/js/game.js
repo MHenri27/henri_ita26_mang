@@ -5,6 +5,7 @@ const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").match
 createWorld(canvas);
 let playerMesh = null;
 dressPlayer();
+createMonkeys();
 
 let state = "menu"; // menu, shop, wardrobe, playing, paused, over
 let shopReturn = "menu";
@@ -35,6 +36,8 @@ function newRun() {
     boost: upgradeLevel("headstart") ? boostTime() + 1 : 0,
     hurt: 0,
     revives: 0,
+    chase: CHASE_REST, // distance between the runner and the monkeys
+    caught: false,
     player: createPlayer(),
   };
   world.camHeading = 0;
@@ -74,7 +77,7 @@ function openShop(from) {
 function closeShop() {
   state = shopReturn;
   showScreen(shopReturn);
-  if (shopReturn === "over") renderOver(run, scoreOf(run), false, reviveCost());
+  if (shopReturn === "over") renderOver(run, scoreOf(run), false, reviveCost(), run.caught);
 }
 
 function openWardrobe() {
@@ -117,7 +120,7 @@ function endRun() {
   if (isBest) save.best = score;
   writeSave();
 
-  renderOver(run, score, isBest, reviveCost());
+  renderOver(run, score, isBest, reviveCost(), run.caught);
   // Let the fall play out before the menu covers it
   ui.hud.hidden = true;
   setTimeout(() => state === "over" && showScreen("over"), 900);
@@ -132,6 +135,8 @@ function revive() {
   run.revives++;
   run.hearts = 1;
   run.hurt = HURT_TIME + 1;
+  run.chase = CHASE_REST;
+  run.caught = false;
   state = "playing";
   showScreen("playing");
   playSound("heart");
@@ -145,7 +150,13 @@ function hurt() {
   run.speed = Math.max(START_SPEED, run.speed * 0.85);
   world.shake = reduceMotion ? 0 : 0.4;
   playSound("hurt");
-  if (run.hearts <= 0) endRun();
+
+  // Every stumble lets the monkeys catch up, two quick ones and they have you
+  run.chase -= CHASE_HIT;
+  if (run.chase < 1.5) run.caught = true;
+  if (run.chase < CHASE_REST - 2) playSound("monkey");
+
+  if (run.hearts <= 0 || run.caught) endRun();
 }
 
 // Left/right either queues a turn near a corner, or switches lane
@@ -190,6 +201,7 @@ function update(dt) {
   run.distance += move;
   run.boost = Math.max(0, run.boost - dt);
   run.hurt = Math.max(0, run.hurt - dt);
+  run.chase = Math.min(CHASE_REST, run.chase + CHASE_RECOVER * dt);
 
   // Corners and moving on to the next segment
   let seg = path.segments[p.seg];
@@ -363,6 +375,10 @@ function loop(now) {
   const idle = state === "menu" || state === "wardrobe" || (state === "shop" && shopReturn === "menu");
   const mode = state === "over" ? "dead" : idle ? "idle" : "run";
   const pos = updatePlayerMesh(playerMesh, p, seg, mode, run.hurt > 0 && state === "playing", dt);
+
+  // Monkeys only show up once a run is going, and crowd around when it ends
+  if (state === "playing" || state === "over") updateMonkeys(dt, run, path, run.speed, state === "over");
+  else if (state !== "paused") hideMonkeys();
   updateCamera(dt, { x: pos.x, y: p.y, z: pos.z }, pos.heading, state === "playing" && run.boost > 0, state === "wardrobe");
   updateParticles(dt);
   renderWorld();

@@ -105,7 +105,8 @@ function renderShop() {
   }
 }
 
-function renderOver(run, score, isBest, reviveCost) {
+function renderOver(run, score, isBest, reviveCost, caught) {
+  $("over-title").textContent = caught ? "The monkeys got you" : "Out of hearts";
   $("final-score").textContent = score;
   $("final-coins").textContent = run.coins;
   $("final-best").textContent = save.best;
